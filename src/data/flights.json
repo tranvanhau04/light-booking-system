@@ -1,0 +1,5 @@
+[
+  { "id": 1, "airline": "Vietnam Airlines", "from": "Hanoi", "to": "Ho Chi Minh", "time": "08:00 - 10:00", "price": 120 },
+  { "id": 2, "airline": "Bamboo Airways", "from": "Hanoi", "to": "Ho Chi Minh", "time": "09:00 - 11:00", "price": 110 },
+  { "id": 3, "airline": "VietJet Air", "from": "Hanoi", "to": "Da Nang", "time": "07:00 - 08:15", "price": 80 }
+]
