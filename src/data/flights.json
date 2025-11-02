@@ -1,5 +1,186 @@
-[
-  { "id": 1, "airline": "Vietnam Airlines", "from": "Hanoi", "to": "Ho Chi Minh", "time": "08:00 - 10:00", "price": 120 },
-  { "id": 2, "airline": "Bamboo Airways", "from": "Hanoi", "to": "Ho Chi Minh", "time": "09:00 - 11:00", "price": 110 },
-  { "id": 3, "airline": "VietJet Air", "from": "Hanoi", "to": "Da Nang", "time": "07:00 - 08:15", "price": 80 }
-]
+{
+  "flights": [
+    {
+      "id": "FL001",
+      "departureTime": "6:30 AM",
+      "arrivalTime": "2:00 PM",
+      "departureAirport": "LCY",
+      "departureAirportName": "London City Airport",
+      "arrivalAirport": "JFK",
+      "arrivalAirportName": "John F. Kennedy International",
+      "departureCity": "London",
+      "arrivalCity": "New York",
+      "airline": "SkyHaven",
+      "flightNumber": "FD695",
+      "duration": "7h30m",
+      "stops": 1,
+      "stopsText": "1 stop",
+      "price": 806,
+      "icon": "flight",
+      "iconColor": "#87CEEB",
+      "date": "Tue, Jul 14",
+      "amenities": {
+        "seatPitch": "28\" seat pitch",
+        "meal": "Light meal",
+        "wifi": "Chance of Wifi",
+        "power": "No power outlet",
+        "entertainment": "No entertainment"
+      }
+    },
+    {
+      "id": "FL002",
+      "departureTime": "10:00 PM",
+      "arrivalTime": "10:15 AM",
+      "departureAirport": "JFK",
+      "departureAirportName": "John F. Kennedy International",
+      "arrivalAirport": "LCY",
+      "arrivalAirportName": "London City Airport",
+      "departureCity": "New York",
+      "arrivalCity": "London",
+      "airline": "EcoWings",
+      "flightNumber": "FD895",
+      "duration": "7h15m",
+      "stops": 0,
+      "stopsText": "Direct",
+      "price": 806,
+      "icon": "circle",
+      "iconColor": "#000",
+      "date": "Fri, Jul 17",
+      "departureDate": "Fri, Jul 17",
+      "arrivalDate": "Sat, Jul 18",
+      "amenities": {
+        "seatPitch": "30\" seat pitch",
+        "meal": "Full meal",
+        "wifi": "Free Wifi",
+        "power": "Power outlet",
+        "entertainment": "Entertainment system"
+      }
+    },
+    {
+      "id": "FL003",
+      "departureTime": "3:15 PM",
+      "arrivalTime": "6:05 PM",
+      "departureAirport": "LCY",
+      "departureAirportName": "London City Airport",
+      "arrivalAirport": "JFK",
+      "arrivalAirportName": "John F. Kennedy International",
+      "departureCity": "London",
+      "arrivalCity": "New York",
+      "airline": "CC Air",
+      "flightNumber": "CC123",
+      "duration": "7h50m",
+      "stops": 0,
+      "stopsText": "Direct",
+      "price": 964,
+      "icon": "flash",
+      "iconColor": "#FFD700",
+      "date": "Tue, Jul 14",
+      "amenities": {
+        "seatPitch": "32\" seat pitch",
+        "meal": "Premium meal",
+        "wifi": "Free Wifi",
+        "power": "Power outlet",
+        "entertainment": "Premium entertainment"
+      }
+    },
+    {
+      "id": "FL004",
+      "departureTime": "6:30 PM",
+      "arrivalTime": "6:30 AM",
+      "departureAirport": "JFK",
+      "departureAirportName": "John F. Kennedy International",
+      "arrivalAirport": "LCY",
+      "arrivalAirportName": "London City Airport",
+      "departureCity": "New York",
+      "arrivalCity": "London",
+      "airline": "Fendi Air",
+      "flightNumber": "FA456",
+      "duration": "7h00m",
+      "stops": 0,
+      "stopsText": "Direct",
+      "price": 964,
+      "icon": "circle",
+      "iconColor": "#000",
+      "date": "Fri, Jul 17",
+      "amenities": {
+        "seatPitch": "34\" seat pitch",
+        "meal": "Luxury meal",
+        "wifi": "Premium Wifi",
+        "power": "USB & Power outlet",
+        "entertainment": "Luxury entertainment"
+      }
+    },
+    {
+      "id": "FL005",
+      "departureTime": "3:15 PM",
+      "arrivalTime": "7:50 PM",
+      "departureAirport": "LCY",
+      "departureAirportName": "London City Airport",
+      "arrivalAirport": "JFK",
+      "arrivalAirportName": "John F. Kennedy International",
+      "departureCity": "London",
+      "arrivalCity": "New York",
+      "airline": "EcoWings",
+      "flightNumber": "EW789",
+      "duration": "7h30m",
+      "stops": 0,
+      "stopsText": "Direct",
+      "price": 964,
+      "icon": "flight",
+      "iconColor": "#87CEEB",
+      "date": "Tue, Jul 14",
+      "amenities": {
+        "seatPitch": "30\" seat pitch",
+        "meal": "Full meal",
+        "wifi": "Free Wifi",
+        "power": "Power outlet",
+        "entertainment": "Entertainment system"
+      }
+    },
+    {
+      "id": "FL006",
+      "departureTime": "7:55 AM",
+      "arrivalTime": "7:35 PM",
+      "departureAirport": "JFK",
+      "departureAirportName": "John F. Kennedy International",
+      "arrivalAirport": "LCY",
+      "arrivalAirportName": "London City Airport",
+      "departureCity": "New York",
+      "arrivalCity": "London",
+      "airline": "EcoWings",
+      "flightNumber": "EW234",
+      "duration": "6h40m",
+      "stops": 0,
+      "stopsText": "Direct",
+      "price": 964,
+      "icon": "flight",
+      "iconColor": "#87CEEB",
+      "date": "Fri, Jul 17",
+      "amenities": {
+        "seatPitch": "30\" seat pitch",
+        "meal": "Full meal",
+        "wifi": "Free Wifi",
+        "power": "Power outlet",
+        "entertainment": "Entertainment system"
+      }
+    }
+  ],
+  "baggage": {
+    "included": {
+      "type": "personal item",
+      "note": "Must go under the seat in front of you"
+    },
+    "extra": [
+      {
+        "type": "Carry-on",
+        "price": 11.99,
+        "status": "Available in the next steps"
+      },
+      {
+        "type": "Checked bag",
+        "price": 19.99,
+        "status": "Available in the next steps"
+      }
+    ]
+  }
+}
