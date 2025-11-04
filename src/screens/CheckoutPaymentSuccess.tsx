@@ -1,10 +1,12 @@
-import { View, StyleSheet, ImageBackground } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, Image, Dimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+const { height } = Dimensions.get("window");
+
 export default function CheckoutPaymentSuccess({ navigation, route }: any) {
-  const { 
+  const {
     bookingId = "BK123456",
     departure = "LCY",
     arrival = "JFK",
@@ -13,226 +15,200 @@ export default function CheckoutPaymentSuccess({ navigation, route }: any) {
     traveller = "Pedro Moreno",
     flightClass = "Economy",
     tripType = "Round-trip",
-    totalPrice = "811.56"
+    totalPrice = "811.56",
   } = route?.params || {};
 
   const handleBookingDetail = () => {
-    // Navigate to booking detail page
-    // navigation.navigate("BookingDetails", { bookingId });
     console.log("View booking details:", bookingId);
   };
 
   const handleHome = () => {
-    // Navigate to home screen
     navigation.navigate("HomeMain");
   };
 
   return (
-    <ImageBackground
-      source={{ uri: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800' }}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.card}>
-            {/* Success Icon */}
-            <View style={styles.iconContainer}>
-              <View style={styles.iconCircle}>
-                <MaterialCommunityIcons name="check" size={40} color="#f97316" />
-              </View>
-            </View>
+    <SafeAreaView style={styles.safeArea}>
+      {/* Ảnh nền nửa trên */}
+      <Image
+        source={require("../../assets/img/plane-bg.jpg")}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
 
-            {/* Title */}
-            <Text style={styles.title}>Booking successful</Text>
+      {/* Overlay mờ nhẹ giúp nổi card */}
+      <View style={styles.overlay} />
 
-            {/* Flight Info */}
-            <View style={styles.flightInfo}>
-              <View style={styles.flightLocation}>
-                <Text style={styles.airportCode}>{departure}</Text>
-                <Text style={styles.dateText}>{departDate}</Text>
-              </View>
-
-              <View style={styles.flightArrow}>
-                <MaterialCommunityIcons name="airplane" size={20} color="#6b7280" />
-                <MaterialCommunityIcons name="swap-horizontal" size={24} color="#6b7280" />
-              </View>
-
-              <View style={styles.flightLocation}>
-                <Text style={styles.airportCode}>{arrival}</Text>
-                <Text style={styles.dateText}>{returnDate}</Text>
-              </View>
-            </View>
-
-            {/* Details Grid */}
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Traveller</Text>
-                <Text style={styles.detailValue}>{traveller}</Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Class</Text>
-                <Text style={styles.detailValue}>{flightClass}</Text>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Flight</Text>
-                <Text style={styles.detailValue}>{tripType}</Text>
-              </View>
-            </View>
-
-            {/* Price */}
-            <Text style={styles.price}>${totalPrice}</Text>
-
-            {/* Buttons */}
-            <Button
-              mode="contained"
-              onPress={handleBookingDetail}
-              style={styles.detailButton}
-              labelStyle={styles.detailButtonLabel}
-              buttonColor="#06b6d4"
-            >
-              Booking detail
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={handleHome}
-              style={styles.homeButton}
-              labelStyle={styles.homeButtonLabel}
-            >
-              Home
-            </Button>
+      {/* Nội dung chính */}
+      <View style={styles.bottomContainer}>
+        <View style={styles.card}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="check-circle-outline"
+              size={36}
+              color="#d97706"
+            />
           </View>
+
+          <Text style={styles.title}>Booking successful</Text>
+
+          <View style={styles.flightRow}>
+            <View style={styles.flightCol}>
+              <Text style={styles.airportCode}>{departure}</Text>
+              <Text style={styles.date}>{departDate}</Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={22}
+              color="#6b7280"
+            />
+
+            <View style={styles.flightCol}>
+              <Text style={styles.airportCode}>{arrival}</Text>
+              <Text style={styles.date}>{returnDate}</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailsRow}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Traveller</Text>
+              <Text style={styles.detailValue}>{traveller}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Class</Text>
+              <Text style={styles.detailValue}>{flightClass}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Flight</Text>
+              <Text style={styles.detailValue}>{tripType}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.price}>${totalPrice}</Text>
+
+          <Button
+            mode="contained"
+            onPress={handleBookingDetail}
+            style={styles.detailButton}
+            buttonColor="#06b6d4"
+            labelStyle={styles.buttonLabel}
+          >
+            Booking detail
+          </Button>
+
+          <Button mode="text" onPress={handleHome} labelStyle={styles.homeLabel}>
+            Home
+          </Button>
         </View>
-      </SafeAreaView>
-    </ImageBackground>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  safeArea: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    backgroundColor: "#fff",
   },
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: height * 0.45, // nền chỉ chiếm nửa trên
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: height * 0.45,
+    backgroundColor: "rgba(0, 0, 0, 0.15)", // tạo độ tương phản nhẹ
+  },
+  bottomContainer: {
+    position: "absolute",
+    bottom: 100,
+    width: "100%",
+    alignItems: "center",
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 32,
-    width: '100%',
-    maxWidth: 400,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    width: "90%",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingVertical: 28,
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 10,
   },
   iconContainer: {
-    marginBottom: 24,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff7ed',
-    borderWidth: 3,
-    borderColor: '#f97316',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 32,
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1f2937",
+    marginBottom: 22,
   },
-  flightInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 32,
-    paddingHorizontal: 8,
+  flightRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "80%",
+    marginBottom: 24,
   },
-  flightLocation: {
-    alignItems: 'center',
-    flex: 1,
+  flightCol: {
+    alignItems: "center",
   },
   airportCode: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    fontWeight: "700",
+    color: "#111827",
   },
-  dateText: {
+  date: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
-  flightArrow: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 32,
-    paddingHorizontal: 8,
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "85%",
+    marginBottom: 24,
   },
   detailItem: {
+    alignItems: "center",
     flex: 1,
-    alignItems: 'center',
   },
   detailLabel: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: 12,
+    color: "#6b7280",
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#111827",
   },
   price: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 32,
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 24,
   },
   detailButton: {
-    width: '100%',
-    borderRadius: 12,
-    paddingVertical: 6,
-    marginBottom: 12,
+    width: "85%",
+    borderRadius: 10,
+    marginBottom: 8,
   },
-  detailButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+  buttonLabel: {
+    fontSize: 15,
+    fontWeight: "600",
   },
-  homeButton: {
-    width: '100%',
-  },
-  homeButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#06b6d4',
+  homeLabel: {
+    color: "#06b6d4",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

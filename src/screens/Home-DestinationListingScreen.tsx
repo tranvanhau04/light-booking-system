@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -18,21 +19,21 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
     {
       id: 1,
       name: 'HongKong',
-      image: '🏙️',
+      image: require('../../assets/img/hongkong.jpg'),
       priceFrom: 33.0,
       priceTo: 38.0,
     },
     {
       id: 2,
       name: 'San Antonio',
-      image: '🏛️',
+      image: require('../../assets/img/sanatonio.jpg'),
       priceFrom: 48.0,
       priceTo: 55.0,
     },
     {
       id: 3,
       name: 'Paris',
-      image: '🗼',
+      image: require('../../assets/img/pari.jpg'),
       priceFrom: 120.0,
       priceTo: 150.0,
     },
@@ -114,9 +115,13 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
                 onPress={handleSearchPress}
               >
                 <View style={styles.cityImageContainer}>
-                  <View style={styles.cityImagePlaceholder}>
-                    <Text style={styles.cityEmoji}>{city.image}</Text>
-                  </View>
+                  <View style={styles.cityImageContainer}>
+                  <Image 
+                   source={city.image} 
+                   style={styles.cityImage}
+                  resizeMode="cover"
+                  />
+                </View>
                 </View>
                 <View style={styles.cityInfo}>
                   <Text style={styles.cityName}>{city.name}</Text>
@@ -138,12 +143,11 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
             onPress={handleSearchPress}
           >
             <View style={styles.exploreImageContainer}>
-              <View style={styles.exploreImagePlaceholder}>
-                <Ionicons name="airplane" size={100} color="#fff" />
-                <Text style={styles.exploreOverlayText}>
-                  Discover amazing destinations
-                </Text>
-              </View>
+               <Image 
+                  source={require('../../assets/img/explore.jpg')} // 📸 thay bằng ảnh bạn muốn
+                  style={styles.exploreImage}
+                  resizeMode="cover"
+               />
             </View>
           </TouchableOpacity>
         </View>
@@ -307,6 +311,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
+  cityImage: {
+  width: '100%',
+  height: '100%',
+},
+exploreImage: {
+  width: '100%',
+  height: '100%',
+},
 });
 
 export default HomeDestinationListingScreen;
