@@ -49,7 +49,7 @@ export default function CheckoutSeatInformation({ navigation }: any) {
             <View style={styles.stepLineActive} />
             
             <View style={styles.stepActive}>
-              <MaterialCommunityIcons name="seat-passenger" size={20} color="#fff" />
+              <MaterialCommunityIcons name="sofa" size={20} color="#fff" />
             </View>
             
             <View style={styles.stepLine} />

@@ -54,7 +54,7 @@ export default function CheckoutPayment({ navigation }: any) {
             
             <TouchableOpacity onPress={() => navigateToStep(3)}>
               <View style={styles.stepCompleted}>
-                <MaterialCommunityIcons name="seat-passenger" size={20} color="#fff" />
+                <MaterialCommunityIcons name="sofa" size={20} color="#fff" />
               </View>
             </TouchableOpacity>
             
