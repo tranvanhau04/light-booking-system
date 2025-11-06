@@ -1,22 +1,19 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { Booking } from './Booking';
 
-@Table({ tableName: 'Payment', timestamps: false })
-export class Payment extends Model {
+@Table({ tableName: 'Baggage', timestamps: false })
+export class Baggage extends Model {
   @Column({ type: DataType.STRING(10), primaryKey: true })
-  paymentId!: string;
-
-  @Column(DataType.DOUBLE)
-  amount?: number;
+  baggageId!: string;
 
   @Column(DataType.STRING(10))
-  status?: string;
+  weight?: string;
 
-  @Column(DataType.DATE)
-  transactionTime?: Date;
+  @Column(DataType.DOUBLE)
+  price?: number;
 
-  @Column(DataType.STRING(20))
-  bankTransactionId?: string;
+  @Column(DataType.STRING(10))
+  type?: string;
 
   @ForeignKey(() => Booking)
   @Column(DataType.STRING(10))
@@ -25,3 +22,4 @@ export class Payment extends Model {
   @BelongsTo(() => Booking)
   booking?: Booking;
 }
+export default Baggage;

@@ -1,61 +1,35 @@
-﻿const { DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
-const { sequelize } = require('../config/database');
+﻿import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Account } from './Account';
+import { Booking } from './Booking';
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  name: {
-    type: DataTypes.STRING(100),
-    allowNull: false
-  },
-  email: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true,
-    validate: { isEmail: true }
-  },
-  password: {
-    type: DataTypes.STRING(255),
-    allowNull: false
-  },
-  phone: {
-    type: DataTypes.STRING(20)
-  },
-  member_level: {
-    type: DataTypes.ENUM('Silver', 'Gold', 'Platinum'),
-    defaultValue: 'Silver'
-  },
-  points: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  }
-}, {
-  tableName: 'users',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
-  hooks: {
-    beforeCreate: async (user) => {
-      if (user.password) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-    }
-  }
-});
+@Table({ tableName: 'User', timestamps: false })
+export class User extends Model {
+  @Column({ type: DataType.STRING(10), primaryKey: true })
+  userId!: string;
 
-User.prototype.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
+  @Column(DataType.STRING(50))
+  fullName!: string;
 
-User.prototype.toJSON = function() {
-  const values = { ...this.get() };
-  delete values.password;
-  return values;
-};
+  @Column(DataType.STRING(50))
+  email?: string;
 
-module.exports = User;
+  @Column(DataType.STRING(15))
+  phone?: string;
+
+  @Column(DataType.DATE)
+  dateOfBirth?: Date;
+
+  @Column(DataType.STRING(20))
+  nationality?: string;
+
+  @ForeignKey(() => Account)
+  @Column(DataType.STRING(20))
+  accountId?: string;
+
+  @BelongsTo(() => Account)
+  account?: Account;
+
+  @HasMany(() => Booking)
+  bookings?: Booking[];
+}
+export default User;

@@ -1,45 +1,51 @@
-﻿const { Sequelize } = require('sequelize');
-require('dotenv').config();
+﻿import { Sequelize } from 'sequelize-typescript';
+import { Account } from '../models/Account';
+import { User } from '../models/User';
+import { Flight } from '../models/Flight';
+import { CabinClass } from '../models/CabinClass';
+import { FlightCabinClass } from '../models/FlightCabinClass';
+import { Booking } from '../models/Booking';
+import { FlightBooking } from '../models/FlightBooking';
+import { Passenger } from '../models/Passenger';
+import { BookingPassenger } from '../models/BookingPassenger';
+import { SeatSelection } from '../models/SeatSelection';
+import { Baggage } from '../models/Baggage';
+import { Payment } from '../models/Payment';
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'flight_booking',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    dialect: 'mariadb',
-    dialectOptions: {
-      timezone: '+07:00',
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    define: {
-      timestamps: true,
-      underscored: true,
-      freezeTableName: true,
-    }
-  }
-);
+export const sequelize = new Sequelize({
+  database: 'flight_booking',
+  username: 'root',
+  password: 'sapassword',
+  dialect: 'mariadb',
+  logging: false,
+  models: [
+    Account,
+    User,
+    Flight,
+    CabinClass,
+    FlightCabinClass,
+    Booking,
+    FlightBooking,
+    Passenger,
+    BookingPassenger,
+    SeatSelection,
+    Baggage,
+    Payment,
+  ],
+});
 
-const connectDB = async () => {
+
+export const connectDB = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
-    console.log('? MariaDB connected successfully');
-    
+    console.log('✅ MariaDB connected successfully');
+
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync({ alter: false });
-      console.log('? Database synced');
+      console.log('🛠️ Database synced successfully');
     }
-  } catch (error) {
-    console.error('? Unable to connect to MariaDB:', error.message);
+  } catch (error: any) {
+    console.error('❌ Unable to connect to MariaDB:', error.message);
     process.exit(1);
   }
 };
-
-module.exports = { sequelize, connectDB };

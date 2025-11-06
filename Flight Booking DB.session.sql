@@ -1,6 +1,6 @@
 CREATE DATABASE IF NOT EXISTS flight_booking;
 USE flight_booking;
-USE flight_booking;
+
 -- Bảng tài khoản đăng nhập
 CREATE TABLE Account (
     accountId VARCHAR(20) PRIMARY KEY,
