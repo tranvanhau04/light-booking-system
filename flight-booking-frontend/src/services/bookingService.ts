@@ -3,7 +3,7 @@ import { getToken } from './userService'; // Import hàm getToken
 
 // 10.0.2.2 là localhost khi dùng máy ảo Android.
 // Thay bằng IP máy tính của bạn nếu dùng điện thoại thật.
-const API_URL = 'http://192.168.1.46:5000/api';
+const API_URL = 'http://192.168.1.29:5000/api';
 
 /**
  * Tạo một booking mới

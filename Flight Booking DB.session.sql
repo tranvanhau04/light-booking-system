@@ -491,3 +491,22 @@ SET seatMap = '[
   {"seatNumber": "08A", "isAvailable": true}, {"seatNumber": "08K", "isAvailable": true}
 ]'
 WHERE flightId = 'FL007' AND cabinId = 'C03';
+
+use flight_booking;
+-- 1. TẠO BẢNG "MENU" (NẾU BẠN CHƯA TẠO)
+CREATE TABLE IF NOT EXISTS BaggageOption (
+    optionId VARCHAR(10) PRIMARY KEY,
+    type VARCHAR(20) NOT NULL,
+    weight VARCHAR(50), -- (Tăng độ dài để chứa "Max weight 22.1 lbs")
+    price DOUBLE NOT NULL
+);
+
+-- 2. "ĐẨY" (INSERT) DATA CỦA GIAO DIỆN MẪU VÀO "MENU"
+-- (Xóa data cũ đi nếu có)
+TRUNCATE TABLE BaggageOption; 
+
+INSERT INTO BaggageOption (optionId, type, weight, price)
+VALUES
+('BG_PER', 'Personal', 'Included per traveller', 0.00),
+('BG_CHK1', 'Checked', '1 checked bag (Max weight 22.1 lbs)', 19.99),
+('BG_NONE', 'No Checked', '$00.00', 0.00);

@@ -7,7 +7,8 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import flightRoutes from './routes/flights';
 import bookingRoutes from './routes/bookings';
-
+import optionsRoutes from './routes/options';
+import destinationRoutes from './routes/destinations';
 // Khởi tạo ứng dụng Express
 const app: Express = express();
 const port = config.port || 5000;
@@ -21,7 +22,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/flights', flightRoutes);
 app.use('/api/bookings', bookingRoutes);
-
+app.use('/api/options', optionsRoutes);
+app.use('/api/destinations', destinationRoutes);
 // Route cơ bản để kiểm tra server
 app.get('/', (req: Request, res: Response) => {
   res.send('Flight Booking API is running...');

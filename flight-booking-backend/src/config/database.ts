@@ -11,6 +11,7 @@ import { BookingPassenger } from '../models/BookingPassenger';
 import { SeatSelection } from '../models/SeatSelection';
 import { Baggage } from '../models/Baggage';
 import { Payment } from '../models/Payment';
+import { BaggageOption } from '../models/BaggageOption'; // <-- 1. THÊM DÒNG IMPORT NÀY
 
 export const sequelize = new Sequelize({
   database: 'flight_booking',
@@ -31,9 +32,9 @@ export const sequelize = new Sequelize({
     SeatSelection,
     Baggage,
     Payment,
+    BaggageOption, // <-- 2. THÊM TÊN MODEL VÀO MẢNG NÀY
   ],
 });
-
 
 export const connectDB = async (): Promise<void> => {
   try {

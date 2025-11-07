@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,66 +7,72 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { getBestCities, BestCity } from '../services/destinationService';
 
 const { width } = Dimensions.get('window');
 
-const HomeDestinationListingScreen = ({ navigation }: any) => {
-  const [searchQuery, setSearchQuery] = useState('');
+// === 1. ĐỊNH NGHĨA DATA ẢNH CỨNG ===
+// (Ghép tên Sân bay từ API với ảnh local)
+const cityImageMap: { [key: string]: any } = {
+  'John F Kennedy': require('../../assets/img/hongkong.jpg'),
+  'New York': require('../../assets/img/sanatonio.jpg'),
+  'Los Angeles': require('../../assets/img/pari.jpg'),
+  'default': require('../../assets/img/explore.jpg') // Ảnh dự phòng
+};
 
-  const bestCities = [
-    {
-      id: 1,
-      name: 'HongKong',
-      image: require('../../assets/img/hongkong.jpg'),
-      priceFrom: 33.0,
-      priceTo: 38.0,
-    },
-    {
-      id: 2,
-      name: 'San Antonio',
-      image: require('../../assets/img/sanatonio.jpg'),
-      priceFrom: 48.0,
-      priceTo: 55.0,
-    },
-    {
-      id: 3,
-      name: 'Paris',
-      image: require('../../assets/img/pari.jpg'),
-      priceFrom: 120.0,
-      priceTo: 150.0,
-    },
-  ];
+const HomeDestinationListingScreen = ({ navigation }: any) => {
+  // === 2. THÊM STATE MỚI CHO API ===
+  const [bestCities, setBestCities] = useState<BestCity[]>([]);
+  const [loadingCities, setLoadingCities] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // === 3. GỌI API KHI TẢI MÀN HÌNH ===
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoadingCities(true);
+        const data = await getBestCities(); // Gọi API
+        setBestCities(data);
+      } catch (err) {
+        setError('Không thể tải dữ liệu.');
+        console.error(err);
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+    loadData();
+  }, []); // Chỉ chạy 1 lần
 
   const handleSearchPress = () => {
-    // Hide tab bar when navigating to FlightSearch
     navigation.getParent()?.setOptions({
-      tabBarStyle: { display: 'none' }
+      tabBarStyle: { display: 'none' },
     });
     navigation.navigate('FlightSearch');
   };
 
   React.useEffect(() => {
     // Show tab bar when returning to Home
-    const unsubscribe = navigation.addListener('focus', () => {
-      navigation.getParent()?.setOptions({
-        tabBarStyle: {
-          display: 'flex',
-          borderTopWidth: 1,
-          borderTopColor: '#f0f0f0',
-          paddingBottom: 20,
-          paddingTop: 10,
-        }
-      });
-    });
-
-    return unsubscribe;
+     const unsubscribe = navigation.addListener('focus', () => {
+       navigation.getParent()?.setOptions({
+         tabBarStyle: {
+           display: 'flex',
+           borderTopWidth: 1,
+           borderTopColor: '#f0f0f0',
+           paddingBottom: 20,
+           paddingTop: 10,
+         }
+       });
+     });
+     return unsubscribe;
   }, [navigation]);
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header (Giữ nguyên) */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.appIcon}>
@@ -85,12 +91,12 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search Bar */}
-        <TouchableOpacity 
+        {/* Search Bar (Giữ nguyên) */}
+        <TouchableOpacity
           style={styles.searchContainer}
           onPress={handleSearchPress}
           activeOpacity={0.7}
@@ -99,42 +105,50 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
           <Text style={styles.searchPlaceholder}>Find a flight</Text>
         </TouchableOpacity>
 
-        {/* The Best Cities Section */}
+        {/* The Best Cities Section (ĐÃ SỬA) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>The best cities for you</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.citiesScroll}
-          >
-            {bestCities.map((city) => (
-              <TouchableOpacity
-                key={city.id}
-                style={styles.cityCard}
-                activeOpacity={0.8}
-                onPress={handleSearchPress}
-              >
-                <View style={styles.cityImageContainer}>
+          
+          {/* === 4. XỬ LÝ LOADING VÀ LỖI === */}
+          {loadingCities ? (
+            <ActivityIndicator size="large" color="#00BCD4" style={{height: 180}} />
+          ) : error ? (
+            <Text style={{textAlign: 'center', color: 'red', height: 180}}>{error}</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.citiesScroll}
+            >
+              {bestCities.map((city) => (
+                <TouchableOpacity
+                  key={city.destinationId} // <-- Dùng ID từ API
+                  style={styles.cityCard}
+                  activeOpacity={0.8}
+                  onPress={handleSearchPress}
+                >
                   <View style={styles.cityImageContainer}>
-                  <Image 
-                   source={city.image} 
-                   style={styles.cityImage}
-                  resizeMode="cover"
-                  />
-                </View>
-                </View>
-                <View style={styles.cityInfo}>
-                  <Text style={styles.cityName}>{city.name}</Text>
-                  <Text style={styles.cityPrice}>
-                    from ${city.priceFrom.toFixed(2)} to ${city.priceTo.toFixed(2)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                    {/* === 5. LOAD ẢNH CỨNG (Yêu cầu 3) === */}
+                    <Image
+                      // Lấy ảnh từ map, nếu không thấy thì dùng ảnh 'default'
+                      source={cityImageMap[city.name] || cityImageMap['default']} 
+                      style={styles.cityImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View style={styles.cityInfo}>
+                    <Text style={styles.cityName}>{city.name}</Text>
+                    <Text style={styles.cityPrice}>
+                      from ${city.priceFrom.toFixed(2)} to ${city.priceTo.toFixed(2)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
-        {/* Explore Destinations Section */}
+        {/* Explore Destinations Section (Giữ nguyên) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Explore Destinations</Text>
           <TouchableOpacity
@@ -144,7 +158,7 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
           >
             <View style={styles.exploreImageContainer}>
                <Image 
-                  source={require('../../assets/img/explore.jpg')} // 📸 thay bằng ảnh bạn muốn
+                  source={require('../../assets/img/explore.jpg')}
                   style={styles.exploreImage}
                   resizeMode="cover"
                />
@@ -154,7 +168,6 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
     </View>
   );
 };
