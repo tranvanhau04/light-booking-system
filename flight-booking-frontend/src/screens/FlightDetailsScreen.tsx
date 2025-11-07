@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconButton, Surface, Divider } from 'react-native-paper';
-import flightService, { FlightDetails, Flight } from '../services/flightService';
+import { FlightDetails, Flight } from '../services/flightService';
 
 interface FlightDetailsScreenProps {
   navigation: any;
@@ -32,15 +33,34 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
     travellers: 1,
     cabinClass: 'Economy',
   };
+  const options = route?.params?.options || {
+    travellers: {
+      adults: 1,
+      children: 0,
+      infants: 0
+    },
+    cabinClass: 'Economy'
+  };
 
   useEffect(() => {
-    if (flightId) {
-      const details = flightService.getFlightDetails(flightId, searchParams);
-      if (details) {
-        setFlightDetails(details);
+    const fetchFlightDetails = async () => {
+      if (!flightId) return;
+
+      try {
+        const res = await axios.get(`http://localhost:8080/api/flights/${flightId}`);
+        if (res.data?.success) {
+          setFlightDetails(res.data.data); // backend trả về { data: {...} }
+        } else {
+          console.warn('Không tìm thấy dữ liệu chuyến bay');
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy chi tiết chuyến bay:', error);
       }
-    }
+    };
+
+    fetchFlightDetails();
   }, [flightId]);
+
 
   const handleSelect = () => {
     if (flightDetails) {
@@ -49,6 +69,7 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
         flightId: flightDetails.id,
         flightDetails: flightDetails,
         searchParams: searchParams,
+          options
       })
     }
   }
@@ -76,7 +97,7 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       {/* Header */}
       <Surface style={styles.header} elevation={1}>
         <IconButton
@@ -84,9 +105,9 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
           size={24}
           onPress={() => navigation.goBack()}
         />
-        
+
         <Text style={styles.headerTitle}>Flight details</Text>
-        
+
         <View style={styles.headerActions}>
           <IconButton
             icon={isFavorite ? 'heart' : 'heart-outline'}
@@ -103,7 +124,7 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
       </Surface>
 
       {/* Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -126,16 +147,16 @@ const FlightDetailsScreen: React.FC<FlightDetailsScreenProps> = ({ navigation, r
           <View style={styles.tripInfoItem}>
             <Ionicons name="person-outline" size={16} color="#6b7280" />
             <Text style={styles.tripInfoText}>
-              {flightDetails.travellers} traveller{flightDetails.travellers > 1 ? 's' : ''}
+              {options.travellers.adults + options.travellers.children + options.travellers.infants} travellers
             </Text>
           </View>
           <View style={styles.tripInfoItem}>
             <Ionicons name="airplane-outline" size={16} color="#6b7280" />
-            <Text style={styles.tripInfoText}>{flightDetails.cabinClass}</Text>
+            <Text style={styles.tripInfoText}>{options.cabinClass}</Text>
           </View>
           <View style={styles.tripInfoItem}>
             <Ionicons name="ticket-outline" size={16} color="#6b7280" />
-            <Text style={styles.tripInfoText}>{flightDetails.tripType}</Text>
+            <Text style={styles.tripInfoText}>{searchParams.tripType}</Text>
           </View>
         </View>
 

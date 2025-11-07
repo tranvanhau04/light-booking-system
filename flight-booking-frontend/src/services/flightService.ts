@@ -1,4 +1,4 @@
-import flightsData from '../data/flights.json';
+import axios from 'axios';
 
 export interface Flight {
   id: string;
@@ -21,7 +21,7 @@ export interface Flight {
   date: string;
   departureDate?: string;
   arrivalDate?: string;
-  amenities: {
+  amenities?: {
     seatPitch: string;
     meal: string;
     wifi: string;
@@ -65,157 +65,116 @@ export interface FlightDetails {
   totalPrice: number;
 }
 
-class FlightService {
-  private flights: Flight[] = flightsData.flights;
-  private baggageInfo: Baggage = flightsData.baggage;
+const API_BASE_URL = 'http://localhost:8080/api/flights'; // ⚙️ đổi theo backend thật của bạn
+const BAGGAGE_API_URL = 'http://localhost:8080/api/baggage'; // nếu có bảng baggage riêng
 
+class FlightService {
   /**
    * Get all flights
    */
-  getAllFlights(): Flight[] {
-    return this.flights;
+  async getAllFlights(): Promise<Flight[]> {
+    const response = await axios.get(`${API_BASE_URL}`);
+    return response.data;
   }
 
   /**
-   * Search flights based on search parameters
+   * Search flights from backend with query params
    */
-  searchFlights(params: FlightSearchParams): Flight[] {
-    let results = [...this.flights];
-
-    // Filter by route if provided
-    if (params.from && params.to) {
-      const fromCity = params.from.split(' (')[0];
-      const toCity = params.to.split(' (')[0];
-      
-      results = results.filter(flight => 
-        flight.departureCity === fromCity && flight.arrivalCity === toCity
-      );
-    }
-
-    return results;
+  async searchFlights(params: FlightSearchParams): Promise<Flight[]> {
+    const response = await axios.get(`${API_BASE_URL}/search`, {
+      params: {
+        from: params.from,
+        to: params.to,
+        departDate: params.departDate,
+        returnDate: params.returnDate,
+        travellers: params.travellers,
+        cabinClass: params.cabinClass,
+      },
+    });
+    return response.data;
   }
 
   /**
-   * Get flight by ID
+   * Get flight details from backend
    */
-  getFlightById(id: string): Flight | undefined {
-    return this.flights.find(flight => flight.id === id);
-  }
+  async getFlightDetails(flightId: string, searchParams: FlightSearchParams): Promise<FlightDetails | null> {
+    try {
+      // Gọi API để lấy flight detail
+      const response = await axios.get(`${API_BASE_URL}/${flightId}`);
+      const outboundFlight: Flight = response.data;
 
-  /**
-   * Get flight details with full information
-   */
-  getFlightDetails(flightId: string, searchParams: FlightSearchParams): FlightDetails | null {
-    const outboundFlight = this.getFlightById(flightId);
-    
-    if (!outboundFlight) {
+      // Nếu có return date → tìm chiều ngược lại
+      let inboundFlight: Flight | null = null;
+      if (searchParams.returnDate) {
+        const inboundResponse = await axios.get(`${API_BASE_URL}/search`, {
+          params: {
+            from: outboundFlight.arrivalCity,
+            to: outboundFlight.departureCity,
+            departDate: searchParams.returnDate,
+          },
+        });
+        inboundFlight = inboundResponse.data?.[0] || null;
+      }
+
+      // Lấy thông tin baggage (nếu có bảng riêng)
+      let baggageInfo: Baggage = {
+        included: { type: "Cabin bag 7kg", note: "1 per passenger" },
+        extra: [
+          { type: "Checked bag 20kg", price: 40, status: "Available" },
+          { type: "Checked bag 30kg", price: 60, status: "Available" },
+        ],
+      };
+      try {
+        const baggageResponse = await axios.get(BAGGAGE_API_URL);
+        if (baggageResponse.data) baggageInfo = baggageResponse.data;
+      } catch (bErr) {
+        console.warn("⚠️ No baggage API found, using default data");
+      }
+
+      const from = searchParams.from?.split(' (')[0] || outboundFlight.departureCity;
+      const to = searchParams.to?.split(' (')[0] || outboundFlight.arrivalCity;
+
+      return {
+        id: flightId,
+        destination: to,
+        origin: from,
+        dateRange: searchParams.returnDate
+          ? `${searchParams.departDate} - ${searchParams.returnDate}`
+          : searchParams.departDate || 'N/A',
+        travellers: searchParams.travellers || 1,
+        cabinClass: searchParams.cabinClass || 'Economy',
+        tripType: searchParams.returnDate ? 'Round-trip' : 'One-way',
+        outbound: outboundFlight,
+        inbound: inboundFlight,
+        baggage: baggageInfo,
+        totalPrice: inboundFlight
+          ? outboundFlight.price + inboundFlight.price
+          : outboundFlight.price,
+      };
+    } catch (error) {
+      console.error('Error fetching flight details:', error);
       return null;
     }
-
-    // Find return flight if round-trip
-    let inboundFlight: Flight | null = null;
-    if (searchParams.returnDate) {
-      // Find a return flight going opposite direction
-      inboundFlight = this.flights.find(flight => 
-        flight.departureCity === outboundFlight.arrivalCity &&
-        flight.arrivalCity === outboundFlight.departureCity
-      ) || null;
-    }
-
-    const from = searchParams.from?.split(' (')[0] || outboundFlight.departureCity;
-    const to = searchParams.to?.split(' (')[0] || outboundFlight.arrivalCity;
-
-    return {
-      id: flightId,
-      destination: to,
-      origin: from,
-      dateRange: searchParams.returnDate 
-        ? `${searchParams.departDate} - ${searchParams.returnDate}`
-        : searchParams.departDate || 'N/A',
-      travellers: searchParams.travellers || 1,
-      cabinClass: searchParams.cabinClass || 'Economy',
-      tripType: searchParams.returnDate ? 'Round-trip' : 'One-way',
-      outbound: outboundFlight,
-      inbound: inboundFlight,
-      baggage: this.baggageInfo,
-      totalPrice: inboundFlight 
-        ? outboundFlight.price + inboundFlight.price 
-        : outboundFlight.price,
-    };
   }
 
   /**
    * Get baggage information
    */
-  getBaggageInfo(): Baggage {
-    return this.baggageInfo;
-  }
-
-  /**
-   * Filter flights by stops
-   */
-  filterByStops(flights: Flight[], stopsFilter: string): Flight[] {
-    switch (stopsFilter) {
-      case 'Nonstop only':
-        return flights.filter(f => f.stops === 0);
-      case '1 stop or nonstop':
-        return flights.filter(f => f.stops <= 1);
-      case 'Any stops':
-      default:
-        return flights;
+  async getBaggageInfo(): Promise<Baggage> {
+    try {
+      const response = await axios.get(BAGGAGE_API_URL);
+      return response.data;
+    } catch {
+      return {
+        included: { type: 'Cabin bag 7kg', note: '1 per passenger' },
+        extra: [
+          { type: 'Checked bag 20kg', price: 40, status: 'Available' },
+          { type: 'Checked bag 30kg', price: 60, status: 'Available' },
+        ],
+      };
     }
-  }
-
-  /**
-   * Filter flights by airlines
-   */
-  filterByAirlines(flights: Flight[], airlines: string[]): Flight[] {
-    if (airlines.length === 0) {
-      return flights;
-    }
-    return flights.filter(f => airlines.includes(f.airline));
-  }
-
-  /**
-   * Sort flights
-   */
-  sortFlights(flights: Flight[], sortBy: string): Flight[] {
-    const sorted = [...flights];
-    
-    switch (sortBy) {
-      case 'Price: Low to High':
-        return sorted.sort((a, b) => a.price - b.price);
-      case 'Price: High to Low':
-        return sorted.sort((a, b) => b.price - a.price);
-      case 'Duration: Shortest':
-        return sorted.sort((a, b) => {
-          const durationA = this.parseDuration(a.duration);
-          const durationB = this.parseDuration(b.duration);
-          return durationA - durationB;
-        });
-      case 'Best':
-      default:
-        // Best = combination of price and duration
-        return sorted.sort((a, b) => {
-          const scoreA = a.price + this.parseDuration(a.duration) * 10;
-          const scoreB = b.price + this.parseDuration(b.duration) * 10;
-          return scoreA - scoreB;
-        });
-    }
-  }
-
-  /**
-   * Parse duration string to minutes
-   */
-  private parseDuration(duration: string): number {
-    const match = duration.match(/(\d+)h\s*(\d+)m/);
-    if (match) {
-      return parseInt(match[1]) * 60 + parseInt(match[2]);
-    }
-    return 0;
   }
 }
 
-// Export singleton instance
 export const flightService = new FlightService();
 export default flightService;

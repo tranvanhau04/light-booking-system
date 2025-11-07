@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -7,6 +8,7 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -23,36 +25,49 @@ interface Flight {
 
 interface Airport {
   name: string;
-  code: string;
   city: string;
-  country: string;
+  code: string;
+  country?: string;
 }
 
-const AIRPORTS: Airport[] = [
-  { name: 'London City Airport', code: 'LCY', city: 'London', country: 'United Kingdom' },
-  { name: 'Heathrow Airport', code: 'LHR', city: 'London', country: 'United Kingdom' },
-  { name: 'John F. Kennedy International', code: 'JFK', city: 'New York', country: 'USA' },
-  { name: 'LaGuardia Airport', code: 'LGA', city: 'New York', country: 'USA' },
-  { name: 'Newark Liberty International', code: 'EWR', city: 'New York', country: 'USA' },
-];
+
 
 const FlightSearchScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  
+  const [airports, setAirports] = useState<Airport[]>([]);
+  const [loadingAirports, setLoadingAirports] = useState<boolean>(false);
+  const [errorAirports, setErrorAirports] = useState<string | null>(null);
+
+  // 👇 đặt ở đầu component (cùng chỗ với các useState khác)
+  const [selectedBaggageOption, setSelectedBaggageOption] = useState(null);
+  const [selectedSeatType, setSelectedSeatType] = useState(null);
+  const [selectedMealOption, setSelectedMealOption] = useState(null);
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',  // Fri
+      month: 'short',    // Jul
+      day: '2-digit',    // 14
+    });
+  };
+
+  const today = new Date();
+
+  const [flights, setFlights] = useState<Flight[]>([
+    { from: '', to: '', date: formatDate(today) },
+    { from: '', to: '', date: formatDate(today) },
+  ]);
   const [tripType, setTripType] = useState<TripType>('round-trip');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [departDate, setDepartDate] = useState('Fri, Jul 14');
-  const [returnDate, setReturnDate] = useState('Fri, Jul 17');
+  const [departDate, setDepartDate] = useState(formatDate(today));
+  const [returnDate, setReturnDate] = useState(formatDate(today));
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [cabinClass, setCabinClass] = useState<CabinClass>('Economy');
-  
-  const [flights, setFlights] = useState<Flight[]>([
-    { from: '', to: '', date: 'Fri, Jul 14' },
-    { from: '', to: '', date: 'Fri, Jul 14' },
-  ]);
+
+
 
   // Modals
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -68,27 +83,27 @@ const FlightSearchScreen = () => {
   const totalTravellers = adults + children + infants;
 
   React.useEffect(() => {
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.setOptions({
-        tabBarStyle: { display: 'none' }
-      });
-    }
+    const fetchAirports = async () => {
+      try {
+        setLoadingAirports(true);
+        setErrorAirports(null);
 
-    return () => {
-      if (parent) {
-        parent.setOptions({
-          tabBarStyle: {
-            display: 'flex',
-            borderTopWidth: 1,
-            borderTopColor: '#f0f0f0',
-            paddingBottom: 20,
-            paddingTop: 10,
-          }
-        });
+        const response = await axios.get("http://localhost:8080/api/airports");
+        // backend trả về { success: true, message, data: [...] }
+        const data = response.data?.data ?? response.data; // robust
+        setAirports(data as Airport[]);
+      } catch (err: any) {
+        console.error("Error fetching airports:", err);
+        setErrorAirports(err?.message ?? "Unknown error");
+      } finally {
+        setLoadingAirports(false);
       }
     };
-  }, [navigation]);
+
+    fetchAirports();
+  }, []);
+
+
 
   const addFlight = () => {
     setFlights([...flights, { from: '', to: '', date: 'Fri, Jul 14' }]);
@@ -152,11 +167,21 @@ const FlightSearchScreen = () => {
     }
   };
 
-  const filteredAirports = AIRPORTS.filter(airport => 
-    airport.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    airport.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    airport.city.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAirports = airports.filter((airport: Airport) =>
+    (airport.name || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase()) ||
+    (airport.code || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase()) ||
+    (airport.city || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase()) ||
+    (airport.country || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
+
 
   // Options Modal
   const renderOptionsModal = () => (
@@ -177,7 +202,7 @@ const FlightSearchScreen = () => {
 
           <ScrollView>
             <Text style={styles.sectionTitle}>Traveller</Text>
-            
+
             <View style={styles.counterRow}>
               <View>
                 <Text style={styles.counterLabel}>Adults</Text>
@@ -245,7 +270,7 @@ const FlightSearchScreen = () => {
             </View>
 
             <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Cabin Class</Text>
-            
+
             {(['Economy', 'Premium Economy', 'Business', 'First'] as CabinClass[]).map((className) => (
               <TouchableOpacity
                 key={className}
@@ -273,108 +298,149 @@ const FlightSearchScreen = () => {
       </View>
     </Modal>
   );
-
   // Date Modal
-  const renderDateModal = () => (
-    <Modal
-      visible={showDateModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => {
-        setShowDateModal(false);
-        setIsSelectingDepartDate(true);
-      }}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Date</Text>
-            <TouchableOpacity onPress={() => {
-              setShowDateModal(false);
-              setIsSelectingDepartDate(true);
-            }}>
-              <MaterialCommunityIcons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+  const renderDateModal = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
 
-          <View style={styles.dateSelector}>
-            <TouchableOpacity 
-              style={[styles.dateItem, isSelectingDepartDate && styles.dateItemActive]}
-              onPress={() => setIsSelectingDepartDate(true)}
-            >
-              <MaterialCommunityIcons name="airplane-takeoff" size={20} color={isSelectingDepartDate ? "#00BCD4" : "#666"} />
-              <Text style={[styles.dateText, isSelectingDepartDate && styles.dateTextActive]}>{departDate}</Text>
-            </TouchableOpacity>
-            {tripType === 'round-trip' && (
-              <TouchableOpacity 
-                style={[styles.dateItem, !isSelectingDepartDate && styles.dateItemActive]}
-                onPress={() => setIsSelectingDepartDate(false)}
+    // Hàm tạo danh sách tháng từ tháng hiện tại -> 12 tháng tới
+    const generateMonths = () => {
+      const months: { name: string; year: number; month: number; days: number; firstDay: number }[] = [];
+      for (let i = 0; i < 12; i++) {
+        const date = new Date(currentYear, currentMonth + i, 1);
+        const name = date.toLocaleString('en-US', { month: 'long' });
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const days = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+        months.push({ name, year, month, days, firstDay });
+      }
+      return months;
+    };
+
+    const months = generateMonths();
+
+    const handleDaySelectDynamic = (year: number, month: number, day: number) => {
+      const date = new Date(year, month, day);
+      const formatted = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      if (tripType === 'multi-city') {
+        const updatedFlights = [...flights];
+        updatedFlights[selectedFlightIndex].date = formatted;
+        setFlights(updatedFlights);
+      } else if (isSelectingDepartDate) {
+        setDepartDate(formatted);
+        if (tripType === 'round-trip') setIsSelectingDepartDate(false);
+      } else {
+        setReturnDate(formatted);
+      }
+    };
+
+    return (
+      <Modal
+        visible={showDateModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowDateModal(false);
+          setIsSelectingDepartDate(true);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Date</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDateModal(false);
+                  setIsSelectingDepartDate(true);
+                }}
               >
-                <MaterialCommunityIcons name="airplane-landing" size={20} color={!isSelectingDepartDate ? "#00BCD4" : "#666"} />
-                <Text style={[styles.dateText, !isSelectingDepartDate && styles.dateTextActive]}>{returnDate}</Text>
+                <MaterialCommunityIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
-            )}
-          </View>
-
-          <ScrollView>
-            <View style={styles.calendar}>
-              <Text style={styles.monthTitle}>July 2025</Text>
-              <View style={styles.weekDays}>
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                  <Text key={index} style={styles.weekDay}>{day}</Text>
-                ))}
-              </View>
-              <View style={styles.daysGrid}>
-                {[29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 1, 2].map((day, index) => {
-                  const isDisabled = index < 2 || index > 32;
-                  const isDepartDay = day === selectedDay && isSelectingDepartDate;
-                  const isReturnDay = day === selectedReturnDay && !isSelectingDepartDate && tripType === 'round-trip';
-                  const isSelected = isDepartDay || isReturnDay;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.dayCell,
-                        isSelected && styles.selectedDay,
-                      ]}
-                      onPress={() => !isDisabled && handleDaySelect(day)}
-                      disabled={isDisabled}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          isSelected && styles.selectedDayText,
-                          isDisabled && styles.disabledDayText,
-                        ]}
-                      >
-                        {day}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
             </View>
-          </ScrollView>
 
-          <View style={styles.modalFooter}>
-            <Text style={styles.tripTypeLabel}>
-              {isSelectingDepartDate ? 'Departure Date' : 'Return Date'}
-            </Text>
-            <TouchableOpacity
-              style={styles.doneButton}
-              onPress={() => {
-                setShowDateModal(false);
-                setIsSelectingDepartDate(true);
-              }}
-            >
-              <Text style={styles.doneButtonText}>Done</Text>
-            </TouchableOpacity>
+            {/* Thanh chọn ngày đi / ngày về */}
+            <View style={styles.dateSelector}>
+              <TouchableOpacity
+                style={[styles.dateItem, isSelectingDepartDate && styles.dateItemActive]}
+                onPress={() => setIsSelectingDepartDate(true)}
+              >
+                <MaterialCommunityIcons name="airplane-takeoff" size={20} color={isSelectingDepartDate ? "#00BCD4" : "#666"} />
+                <Text style={[styles.dateText, isSelectingDepartDate && styles.dateTextActive]}>{departDate}</Text>
+              </TouchableOpacity>
+              {tripType === 'round-trip' && (
+                <TouchableOpacity
+                  style={[styles.dateItem, !isSelectingDepartDate && styles.dateItemActive]}
+                  onPress={() => setIsSelectingDepartDate(false)}
+                >
+                  <MaterialCommunityIcons name="airplane-landing" size={20} color={!isSelectingDepartDate ? "#00BCD4" : "#666"} />
+                  <Text style={[styles.dateText, !isSelectingDepartDate && styles.dateTextActive]}>{returnDate}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Cuộn qua các tháng */}
+            <ScrollView>
+              {months.map((m, idx) => (
+                <View key={idx} style={styles.calendar}>
+                  <Text style={styles.monthTitle}>{`${m.name} ${m.year}`}</Text>
+                  <View style={styles.weekDays}>
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                      <Text key={i} style={styles.weekDay}>{day}</Text>
+                    ))}
+                  </View>
+                  <View style={styles.daysGrid}>
+                    {/* Căn ngày đầu tháng */}
+                    {Array.from({ length: m.firstDay }).map((_, i) => (
+                      <View key={`empty-${i}-${idx}`} style={[styles.dayCell]} />
+                    ))}
+                    {/* Ngày trong tháng */}
+                    {Array.from({ length: m.days }, (_, d) => d + 1).map((day) => {
+                      const isSelected =
+                        (isSelectingDepartDate && departDate.includes(`${m.name.slice(0, 3)} ${day}`)) ||
+                        (!isSelectingDepartDate && returnDate.includes(`${m.name.slice(0, 3)} ${day}`));
+
+                      return (
+                        <TouchableOpacity
+                          key={`${m.name}-${day}`}
+                          style={[styles.dayCell, isSelected && styles.selectedDay]}
+                          onPress={() => handleDaySelectDynamic(m.year, m.month, day)}
+                        >
+                          <Text
+                            style={[
+                              styles.dayText,
+                              isSelected && styles.selectedDayText,
+                            ]}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Text style={styles.tripTypeLabel}>
+                {isSelectingDepartDate ? 'Departure Date' : 'Return Date'}
+              </Text>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => {
+                  setShowDateModal(false);
+                  setIsSelectingDepartDate(true);
+                }}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   // Location Modal (From/To)
   const renderLocationModal = (isFrom: boolean) => (
@@ -413,20 +479,25 @@ const FlightSearchScreen = () => {
           </View>
 
           <ScrollView style={styles.locationResults}>
+            {loadingAirports && <Text>Loading airports...</Text>}
+            {!loadingAirports && filteredAirports.length === 0 && (
+              <Text style={{ textAlign: 'center', marginTop: 20 }}>No airports found</Text>
+            )}
             {filteredAirports.map((airport, index) => (
               <TouchableOpacity
-                key={index}
+                key={airport.code + index}
                 style={styles.airportItem}
                 onPress={() => selectAirport(airport, isFrom)}
               >
                 <MaterialCommunityIcons name="airplane" size={24} color="#666" />
                 <View style={styles.airportInfo}>
-                  <Text style={styles.airportName}>{airport.name}</Text>
-                  <Text style={styles.airportDistance}>{airport.city}, {airport.country}</Text>
+                  <Text style={styles.airportName}>{airport.code} — {airport.name}</Text>
+                  <Text style={styles.airportDistance}>{airport.city}{airport.country ? `, ${airport.country}` : ''}</Text>
                 </View>
                 <Text style={styles.airportCode}>{airport.code}</Text>
               </TouchableOpacity>
             ))}
+
           </ScrollView>
         </View>
       </View>
@@ -587,21 +658,87 @@ const FlightSearchScreen = () => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={() => {
-            console.log('Search button pressed');
-            
-            const params = {
-              from: from || 'London',
-              to: to || 'New York',
-              departDate: departDate,
-              returnDate: tripType === 'round-trip' ? returnDate : undefined,
-              travellers: totalTravellers,
-              cabinClass: cabinClass,
-            };          
-            console.log('Params:', params);
-            
-            // @ts-ignore - Ignore TypeScript error for navigation
-            navigation.navigate('FlightBookingSearchResults', params);
+          onPress={async () => {
+            console.log('🔍 Search button pressed');
+
+            try {
+              // Prepare search parameters
+              const searchParams = {
+                from: from || 'London City (LCY)',
+                to: to || 'John F Kennedy (JFK)',
+                departDate: departDate,
+                returnDate: tripType === 'round-trip' ? returnDate : undefined,
+                passengers: totalTravellers,
+                cabinClass: cabinClass,
+                tripType: tripType
+              };
+
+              console.log('📤 Sending search params:', searchParams);
+
+              // Call API
+              const response = await axios.get('http://localhost:8080/api/flights/search', {
+                params: searchParams
+              });
+
+              console.log('📥 Search response:', response.data);
+
+              if (response.data.success) {
+                const { outboundFlights, returnFlights, searchCriteria } = response.data.data;
+
+                console.log(`✈️ Found ${outboundFlights.length} outbound flights`);
+                console.log(`🔙 Found ${returnFlights.length} return flights`);
+                const options = {
+                  travellers: {
+                    adults,
+                    children,
+                    infants
+                  },
+                  cabinClass: searchCriteria.cabinClass
+                };
+
+
+                // Navigate to results page with data
+                navigation.navigate('FlightBookingSearchResults', {
+                  outboundFlights,
+                  returnFlights,
+                  searchCriteria,
+                  from: searchCriteria.from,
+                  to: searchCriteria.to,
+                  departDate: searchCriteria.departDate,
+                  returnDate: searchCriteria.returnDate,
+                  tripType: searchCriteria.tripType,
+                  passengers: {
+                    adults: adults,
+                    children: children,
+                    infants: infants
+                  },
+                  cabinClass: searchCriteria.cabinClass,
+                  options
+                });
+              } else {
+                // No flights found
+                Alert.alert(
+                  'No Flights Found',
+                  response.data.message || 'No flights match your search criteria. Please try different dates or destinations.',
+                  [{ text: 'OK' }]
+                );
+              }
+            } catch (error: any) {
+              console.error('❌ Error searching flights:', error);
+
+              let errorMessage = 'Unable to search flights. Please check your connection and try again.';
+
+              if (error.response) {
+                console.error('Error response:', error.response.data);
+                errorMessage = error.response.data.message || errorMessage;
+              }
+
+              Alert.alert(
+                'Search Error',
+                errorMessage,
+                [{ text: 'OK' }]
+              );
+            }
           }}
         >
           <Text style={styles.searchButtonText}>Search flights</Text>

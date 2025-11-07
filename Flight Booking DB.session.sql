@@ -293,3 +293,134 @@ VALUES
 ('PM006', 920.00, 'Pending', '2025-11-01 08:00:00', 'TXN77777', 'BK006'),
 ('PM007', 1700.00, 'Completed', '2025-11-05 14:20:00', 'TXN88888', 'BK007'),
 ('PM008', 310.00, 'Completed', '2025-12-02 10:10:00', 'TXN99999', 'BK008');
+
+-- ===============================
+-- 🔄 Thêm 50 chuyến bay mới (từ FL011 → FL060)
+-- ===============================
+INSERT INTO Flight (flightId, flightCode, departureAirport, arrivalAirport, departureTime, arrivalTime, duration, tripType, airline, basePrice, stopCount)
+VALUES
+-- 🔸 2025-11-08 (nhiều chuyến trong 1 ngày)
+('FL011', 'SGNHAN', 'Tan Son Nhat', 'Noi Bai', '2025-11-08 07:00:00', '2025-11-08 09:00:00', 120, 'One-way', 'VietnamAir', 120.00, 0),
+('FL012', 'HANSGN', 'Noi Bai', 'Tan Son Nhat', '2025-11-08 11:00:00', '2025-11-08 13:00:00', 120, 'Round-trip', 'BambooAir', 125.00, 0),
+('FL013', 'SGNDAD', 'Tan Son Nhat', 'Da Nang', '2025-11-08 14:00:00', '2025-11-08 15:30:00', 90, 'Multi-city', 'VietJet', 90.00, 0),
+
+-- 🔸 2025-11-09
+('FL014', 'DADSGN', 'Da Nang', 'Tan Son Nhat', '2025-11-09 09:00:00', '2025-11-09 10:30:00', 90, 'Round-trip', 'VietJet', 90.00, 0),
+('FL015', 'SGNREP', 'Tan Son Nhat', 'Siem Reap', '2025-11-09 11:00:00', '2025-11-09 12:15:00', 75, 'One-way', 'CambodiaAngkor', 140.00, 0),
+
+-- 🔸 2025-11-10
+('FL016', 'REPSGN', 'Siem Reap', 'Tan Son Nhat', '2025-11-10 09:00:00', '2025-11-10 10:15:00', 75, 'Round-trip', 'CambodiaAngkor', 140.00, 0),
+('FL017', 'HANBKK', 'Noi Bai', 'Bangkok', '2025-11-10 06:00:00', '2025-11-10 08:00:00', 120, 'One-way', 'ThaiSmile', 160.00, 0),
+
+-- 🔸 2025-11-11
+('FL018', 'BKKSIN', 'Bangkok', 'Singapore', '2025-11-11 10:00:00', '2025-11-11 13:00:00', 180, 'Multi-city', 'SingaporeAir', 230.00, 0),
+('FL019', 'SINBKK', 'Singapore', 'Bangkok', '2025-11-11 14:00:00', '2025-11-11 17:00:00', 180, 'Round-trip', 'SingaporeAir', 230.00, 0),
+
+-- 🔸 2025-11-12
+('FL020', 'HANHKG', 'Noi Bai', 'Hong Kong', '2025-11-12 09:00:00', '2025-11-12 13:00:00', 240, 'One-way', 'Cathay', 260.00, 0),
+('FL021', 'HKGHAN', 'Hong Kong', 'Noi Bai', '2025-11-12 15:00:00', '2025-11-12 19:00:00', 240, 'Round-trip', 'Cathay', 260.00, 0),
+
+-- 🔸 2025-11-13
+('FL022', 'SGNTPE', 'Tan Son Nhat', 'Taipei', '2025-11-13 06:30:00', '2025-11-13 10:45:00', 255, 'Multi-city', 'EvaAir', 330.00, 0),
+('FL023', 'TPESGN', 'Taipei', 'Tan Son Nhat', '2025-11-13 13:00:00', '2025-11-13 17:15:00', 255, 'Round-trip', 'EvaAir', 330.00, 0),
+
+-- 🔸 2025-11-14 (ngày có nhiều chuyến)
+('FL024', 'HANICN', 'Noi Bai', 'Seoul Incheon', '2025-11-14 07:30:00', '2025-11-14 14:00:00', 390, 'One-way', 'KoreanAir', 400.00, 0),
+('FL025', 'ICNHAN', 'Seoul Incheon', 'Noi Bai', '2025-11-14 15:00:00', '2025-11-14 21:00:00', 360, 'Round-trip', 'Asiana', 390.00, 0),
+('FL026', 'SGNHKG', 'Tan Son Nhat', 'Hong Kong', '2025-11-14 08:00:00', '2025-11-14 12:30:00', 270, 'Multi-city', 'Cathay', 280.00, 0),
+('FL027', 'SGNSIN', 'Tan Son Nhat', 'Singapore', '2025-11-14 14:00:00', '2025-11-14 17:00:00', 180, 'One-way', 'SingaporeAir', 210.00, 0),
+('FL028', 'SINDPS', 'Singapore', 'Bali Denpasar', '2025-11-14 18:00:00', '2025-11-14 20:00:00', 120, 'Multi-city', 'Garuda', 180.00, 0),
+
+-- 🔸 2025-11-15
+('FL029', 'DPSPER', 'Bali Denpasar', 'Perth', '2025-11-15 08:00:00', '2025-11-15 12:00:00', 240, 'One-way', 'JetStar', 200.00, 0),
+('FL030', 'PERDPS', 'Perth', 'Bali Denpasar', '2025-11-15 14:00:00', '2025-11-15 18:00:00', 240, 'Round-trip', 'JetStar', 200.00, 0),
+
+-- 🔸 2025-11-16 ~ 2025-11-20 (thêm nhiều flight ngẫu nhiên)
+('FL031', 'SGNSYD', 'Tan Son Nhat', 'Sydney', '2025-11-16 09:00:00', '2025-11-16 19:00:00', 600, 'One-way', 'Qantas', 750.00, 0),
+('FL032', 'SYDSGN', 'Sydney', 'Tan Son Nhat', '2025-11-16 20:00:00', '2025-11-17 06:00:00', 600, 'Round-trip', 'Qantas', 750.00, 0),
+('FL033', 'HANCDG', 'Noi Bai', 'Paris CDG', '2025-11-17 23:00:00', '2025-11-18 06:30:00', 510, 'One-way', 'AirFrance', 850.00, 0),
+('FL034', 'CDGHAN', 'Paris CDG', 'Noi Bai', '2025-11-18 09:00:00', '2025-11-18 17:00:00', 480, 'Round-trip', 'AirFrance', 850.00, 0),
+('FL035', 'SGNDOH', 'Tan Son Nhat', 'Doha', '2025-11-19 01:00:00', '2025-11-19 05:00:00', 240, 'Multi-city', 'QatarAir', 700.00, 0),
+('FL036', 'DOHLHR', 'Doha', 'London Heathrow', '2025-11-19 07:00:00', '2025-11-19 13:00:00', 360, 'Multi-city', 'QatarAir', 800.00, 0),
+('FL037', 'LHRJFK', 'London Heathrow', 'John F Kennedy', '2025-11-20 08:00:00', '2025-11-20 15:00:00', 420, 'One-way', 'BritishAir', 650.00, 0),
+('FL038', 'JFKLHR', 'John F Kennedy', 'London Heathrow', '2025-11-20 18:00:00', '2025-11-21 05:00:00', 420, 'Round-trip', 'BritishAir', 650.00, 0),
+('FL039', 'SGNDXB', 'Tan Son Nhat', 'Dubai', '2025-11-21 00:00:00', '2025-11-21 04:30:00', 270, 'One-way', 'Emirates', 680.00, 0),
+('FL040', 'DXBSGN', 'Dubai', 'Tan Son Nhat', '2025-11-22 00:00:00', '2025-11-22 04:30:00', 270, 'Round-trip', 'Emirates', 680.00, 0),
+
+-- 🔸 2025-11-23 ~ 2025-12-05 (chuyến dài & đa dạng)
+('FL041', 'SGNKUL', 'Tan Son Nhat', 'Kuala Lumpur', '2025-11-23 10:00:00', '2025-11-23 13:00:00', 180, 'One-way', 'AirAsia', 100.00, 0),
+('FL042', 'KULSGN', 'Kuala Lumpur', 'Tan Son Nhat', '2025-11-23 15:00:00', '2025-11-23 18:00:00', 180, 'Round-trip', 'AirAsia', 100.00, 0),
+('FL043', 'HANPEK', 'Noi Bai', 'Beijing', '2025-11-24 07:30:00', '2025-11-24 12:00:00', 270, 'One-way', 'ChinaAir', 260.00, 0),
+('FL044', 'PEKHAN', 'Beijing', 'Noi Bai', '2025-11-25 09:00:00', '2025-11-25 13:30:00', 270, 'Round-trip', 'ChinaAir', 260.00, 0),
+('FL045', 'SGNICN', 'Tan Son Nhat', 'Seoul Incheon', '2025-11-26 06:30:00', '2025-11-26 14:00:00', 450, 'Multi-city', 'VietravelAir', 420.00, 0),
+('FL046', 'ICNTYO', 'Seoul Incheon', 'Tokyo Haneda', '2025-11-26 15:00:00', '2025-11-26 18:30:00', 210, 'Multi-city', 'VietravelAir', 420.00, 0),
+('FL047', 'TYOSGN', 'Tokyo Haneda', 'Tan Son Nhat', '2025-11-27 08:00:00', '2025-11-27 14:00:00', 360, 'Round-trip', 'JapanAir', 550.00, 0),
+('FL048', 'SGNHKT', 'Tan Son Nhat', 'Phuket', '2025-11-28 09:00:00', '2025-11-28 10:30:00', 90, 'One-way', 'ThaiVietJet', 120.00, 0),
+('FL049', 'HKTSGN', 'Phuket', 'Tan Son Nhat', '2025-11-28 14:00:00', '2025-11-28 15:30:00', 90, 'Round-trip', 'ThaiVietJet', 120.00, 0),
+('FL050', 'SGNDEL', 'Tan Son Nhat', 'Delhi', '2025-11-30 06:00:00', '2025-11-30 11:00:00', 300, 'One-way', 'Indigo', 310.00, 0),
+('FL051', 'DELSGN', 'Delhi', 'Tan Son Nhat', '2025-11-30 14:00:00', '2025-11-30 19:00:00', 300, 'Round-trip', 'Indigo', 310.00, 0),
+('FL052', 'SGNYVR', 'Tan Son Nhat', 'Vancouver', '2025-12-01 22:00:00', '2025-12-02 08:00:00', 600, 'One-way', 'AirCanada', 890.00, 0),
+('FL053', 'YVRSGN', 'Vancouver', 'Tan Son Nhat', '2025-12-03 23:00:00', '2025-12-04 10:00:00', 660, 'Round-trip', 'AirCanada', 890.00, 0),
+('FL054', 'SGNSFO', 'Tan Son Nhat', 'San Francisco', '2025-12-05 22:00:00', '2025-12-06 10:00:00', 720, 'One-way', 'United', 950.00, 0),
+('FL055', 'SFOSGN', 'San Francisco', 'Tan Son Nhat', '2025-12-07 13:00:00', '2025-12-08 03:00:00', 720, 'Round-trip', 'United', 950.00, 0),
+('FL056', 'SGNFRA', 'Tan Son Nhat', 'Frankfurt', '2025-12-09 23:00:00', '2025-12-10 06:00:00', 480, 'One-way', 'Lufthansa', 880.00, 0),
+('FL057', 'FRASGN', 'Frankfurt', 'Tan Son Nhat', '2025-12-11 09:00:00', '2025-12-11 16:00:00', 480, 'Round-trip', 'Lufthansa', 880.00, 0),
+('FL058', 'SGNZRH', 'Tan Son Nhat', 'Zurich', '2025-12-12 00:00:00', '2025-12-12 06:30:00', 390, 'Multi-city', 'SwissAir', 910.00, 0),
+('FL059', 'ZRHLAX', 'Zurich', 'Los Angeles', '2025-12-13 08:00:00', '2025-12-13 18:00:00', 600, 'Multi-city', 'SwissAir', 980.00, 0),
+('FL060', 'LAXSGN', 'Los Angeles', 'Tan Son Nhat', '2025-12-15 09:00:00', '2025-12-16 18:00:00', 540, 'Round-trip', 'VietnamAir', 970.00, 0);
+
+
+-- Xóa dữ liệu cũ nếu cần
+DELETE FROM Flight;
+
+-- ================================
+-- ✈ ONE-WAY FLIGHTS
+-- ================================
+INSERT INTO Flight (flightId, flightCode, departureAirport, arrivalAirport, departureTime, arrivalTime, duration, tripType, airline, basePrice, stopCount)
+VALUES
+('FL101', 'VN210', 'Tan Son Nhat', 'Noi Bai', '2025-11-20 06:00:00', '2025-11-20 08:10:00', 130, 'one-way', 'Vietnam Airlines', 85.00, 0),
+('FL102', 'VJ122', 'Tan Son Nhat', 'Noi Bai', '2025-11-20 09:00:00', '2025-11-20 11:15:00', 135, 'one-way', 'VietJet Air', 60.00, 0),
+('FL103', 'QH212', 'Tan Son Nhat', 'Noi Bai', '2025-11-20 13:30:00', '2025-11-20 15:40:00', 130, 'one-way', 'Bamboo Airways', 75.00, 0),
+('FL104', 'VN214', 'Tan Son Nhat', 'Noi Bai', '2025-11-20 18:00:00', '2025-11-20 20:10:00', 130, 'one-way', 'Vietnam Airlines', 95.00, 0),
+
+('FL105', 'VN217', 'Noi Bai', 'Tan Son Nhat', '2025-11-20 07:00:00', '2025-11-20 09:10:00', 130, 'one-way', 'Vietnam Airlines', 90.00, 0),
+('FL106', 'VJ123', 'Noi Bai', 'Tan Son Nhat', '2025-11-20 11:30:00', '2025-11-20 13:40:00', 130, 'one-way', 'VietJet Air', 65.00, 0),
+('FL107', 'QH218', 'Noi Bai', 'Tan Son Nhat', '2025-11-20 19:00:00', '2025-11-20 21:10:00', 130, 'one-way', 'Bamboo Airways', 80.00, 0),
+
+('FL108', 'VN312', 'Tan Son Nhat', 'Da Nang', '2025-11-20 07:00:00', '2025-11-20 08:15:00', 75, 'one-way', 'Vietnam Airlines', 70.00, 0),
+('FL109', 'VJ620', 'Tan Son Nhat', 'Da Nang', '2025-11-20 12:00:00', '2025-11-20 13:20:00', 80, 'one-way', 'VietJet Air', 55.00, 0),
+('FL110', 'QH152', 'Tan Son Nhat', 'Da Nang', '2025-11-20 18:30:00', '2025-11-20 19:50:00', 80, 'one-way', 'Bamboo Airways', 68.00, 0);
+
+-- ================================
+-- 🔁 ROUND-TRIP FLIGHTS (Khứ hồi)
+-- ================================
+INSERT INTO Flight (flightId, flightCode, departureAirport, arrivalAirport, departureTime, arrivalTime, duration, tripType, airline, basePrice, stopCount)
+VALUES
+-- SGN <-> HAN
+('FL201', 'VN220', 'Tan Son Nhat', 'Noi Bai', '2025-11-25 08:00:00', '2025-11-25 10:10:00', 130, 'round-trip', 'Vietnam Airlines', 170.00, 0),
+('FL202', 'VN221', 'Noi Bai', 'Tan Son Nhat', '2025-11-28 17:00:00', '2025-11-28 19:15:00', 135, 'round-trip', 'Vietnam Airlines', 170.00, 0),
+
+-- HAN <-> DAD
+('FL203', 'VJ450', 'Noi Bai', 'Da Nang', '2025-11-26 09:30:00', '2025-11-26 10:45:00', 75, 'round-trip', 'VietJet Air', 120.00, 0),
+('FL204', 'VJ451', 'Da Nang', 'Noi Bai', '2025-11-29 18:00:00', '2025-11-29 19:15:00', 75, 'round-trip', 'VietJet Air', 120.00, 0),
+
+-- SGN <-> DAD
+('FL205', 'QH320', 'Tan Son Nhat', 'Da Nang', '2025-11-24 10:00:00', '2025-11-24 11:15:00', 75, 'round-trip', 'Bamboo Airways', 140.00, 0),
+('FL206', 'QH321', 'Da Nang', 'Tan Son Nhat', '2025-11-27 15:30:00', '2025-11-27 16:45:00', 75, 'round-trip', 'Bamboo Airways', 140.00, 0);
+
+-- ================================
+-- 🌍 MULTI-CITY FLIGHTS
+-- ================================
+INSERT INTO Flight (flightId, flightCode, departureAirport, arrivalAirport, departureTime, arrivalTime, duration, tripType, airline, basePrice, stopCount)
+VALUES
+-- SGN -> DOH -> LHR
+('FL301', 'QR971', 'Tan Son Nhat', 'Doha', '2025-11-21 00:30:00', '2025-11-21 05:00:00', 510, 'multi-city', 'Qatar Airways', 680.00, 0),
+('FL302', 'QR7',   'Doha', 'London Heathrow', '2025-11-21 07:10:00', '2025-11-21 12:20:00', 430, 'multi-city', 'Qatar Airways', 750.00, 0),
+
+-- HAN -> BKK -> SIN
+('FL303', 'TG561', 'Noi Bai', 'Bangkok', '2025-11-22 09:00:00', '2025-11-22 11:00:00', 120, 'multi-city', 'Thai Airways', 150.00, 0),
+('FL304', 'SQ981', 'Bangkok', 'Singapore', '2025-11-22 13:00:00', '2025-11-22 16:15:00', 195, 'multi-city', 'Singapore Airlines', 180.00, 0),
+
+-- SGN -> HKG -> TYO
+('FL305', 'CX764', 'Tan Son Nhat', 'Hong Kong', '2025-11-23 08:00:00', '2025-11-23 11:30:00', 210, 'multi-city', 'Cathay Pacific', 230.00, 0),
+('FL306', 'JL704', 'Hong Kong', 'Tokyo', '2025-11-23 13:00:00', '2025-11-23 18:00:00', 300, 'multi-city', 'Japan Airlines', 400.00, 0);
