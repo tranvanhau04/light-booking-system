@@ -4,12 +4,11 @@ import { QueryTypes } from 'sequelize';
   try {
     await connectDB();
 
-    // Kiểm tra danh sách bảng (có thể bỏ nếu không cần)
-    const [results] = await sequelize.query('SHOW TABLES;', {
-      type: QueryTypes.SELECT,
-      raw: true,
-    });
-    console.log('📋 Tables:', results);
+    const results = await sequelize.query('SHOW TABLES;', {
+  type: QueryTypes.SELECT,
+});
+console.log('📋 Tables:', results.map((r: any) => Object.values(r)[0]));
+
 
     await sequelize.close();
     console.log('🔌 Connection closed.');

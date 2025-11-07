@@ -293,3 +293,201 @@ VALUES
 ('PM006', 920.00, 'Pending', '2025-11-01 08:00:00', 'TXN77777', 'BK006'),
 ('PM007', 1700.00, 'Completed', '2025-11-05 14:20:00', 'TXN88888', 'BK007'),
 ('PM008', 310.00, 'Completed', '2025-12-02 10:10:00', 'TXN99999', 'BK008');
+
+
+-- Thêm cột seatMap kiểu JSON vào bảng FlightCabinClass
+ALTER TABLE FlightCabinClass
+ADD COLUMN seatMap JSON;
+
+-- (Tùy chọn) Sửa bảng SeatSelection để liên kết đúng
+-- Bạn nên thêm flightId vào đây để biết ghế này thuộc chuyến bay nào
+ALTER TABLE SeatSelection
+ADD COLUMN flightId VARCHAR(10);
+
+ALTER TABLE SeatSelection
+ADD FOREIGN KEY (flightId) REFERENCES Flight(flightId);
+
+-- 1. Sơ đồ ghế cho Economy (C01) trên chuyến bay FL001
+-- Dữ liệu của bạn: Ghế '03C' đã được đặt (BK001)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "01A", "isAvailable": true}, {"seatNumber": "01B", "isAvailable": true}, {"seatNumber": "01C", "isAvailable": true},
+  {"seatNumber": "01D", "isAvailable": true}, {"seatNumber": "01E", "isAvailable": true}, {"seatNumber": "01F", "isAvailable": true},
+  {"seatNumber": "02A", "isAvailable": true}, {"seatNumber": "02B", "isAvailable": false}, {"seatNumber": "02C", "isAvailable": true},
+  {"seatNumber": "02D", "isAvailable": true}, {"seatNumber": "02E", "isAvailable": true}, {"seatNumber": "02F", "isAvailable": true},
+  {"seatNumber": "03A", "isAvailable": true}, {"seatNumber": "03B", "isAvailable": true}, {"seatNumber": "03C", "isAvailable": false},
+  {"seatNumber": "03D", "isAvailable": true}, {"seatNumber": "03E", "isAvailable": true}, {"seatNumber": "03F", "isAvailable": true},
+  {"seatNumber": "04A", "isAvailable": true}, {"seatNumber": "04B", "isAvailable": true}, {"seatNumber": "04C", "isAvailable": true},
+  {"seatNumber": "04D", "isAvailable": true}, {"seatNumber": "04E", "isAvailable": false}, {"seatNumber": "04F", "isAvailable": true}
+]'
+WHERE flightId = 'FL001' AND cabinId = 'C01';
+
+-- 2. Sơ đồ ghế cho Business (C03) trên chuyến bay FL003
+-- Dữ liệu của bạn: Ghế '12A' đã được đặt (BK002)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "10A", "isAvailable": true}, 
+  {"seatNumber": "10E", "isAvailable": true}, {"seatNumber": "10F", "isAvailable": true},
+  {"seatNumber": "10K", "isAvailable": true},
+  {"seatNumber": "11A", "isAvailable": false}, 
+  {"seatNumber": "11E", "isAvailable": true}, {"seatNumber": "11F", "isAvailable": true},
+  {"seatNumber": "11K", "isAvailable": true},
+  {"seatNumber": "12A", "isAvailable": false}, 
+  {"seatNumber": "12E", "isAvailable": true}, {"seatNumber": "12F", "isAvailable": true},
+  {"seatNumber": "12K", "isAvailable": true}
+]'
+WHERE flightId = 'FL003' AND cabinId = 'C03';
+
+-- 3. Sơ đồ ghế cho Premium Economy (C02) trên chuyến bay FL004
+-- Dữ liệu của bạn: Ghế '07D' đã được đặt (BK003)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "07A", "isAvailable": true}, {"seatNumber": "07C", "isAvailable": true},
+  {"seatNumber": "07D", "isAvailable": false}, {"seatNumber": "07E", "isAvailable": true}, {"seatNumber": "07F", "isAvailable": true},
+  {"seatNumber": "07H", "isAvailable": true}, {"seatNumber": "07K", "isAvailable": true},
+  {"seatNumber": "08A", "isAvailable": true}, {"seatNumber": "08C", "isAvailable": false},
+  {"seatNumber": "08D", "isAvailable": true}, {"seatNumber": "08E", "isAvailable": true}, {"seatNumber": "08F", "isAvailable": true},
+  {"seatNumber": "08H", "isAvailable": true}, {"seatNumber": "08K", "isAvailable": true}
+]'
+WHERE flightId = 'FL004' AND cabinId = 'C02';
+
+-- 4. Sơ đồ ghế cho First (C04) trên chuyến bay FL008
+-- Dữ liệu của bạn: Ghế '04C' đã được đặt (BK007)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "01A", "isAvailable": true}, {"seatNumber": "01K", "isAvailable": true},
+  {"seatNumber": "02A", "isAvailable": true}, {"seatNumber": "02K", "isAvailable": true},
+  {"seatNumber": "03A", "isAvailable": true}, {"seatNumber": "03K", "isAvailable": false},
+  {"seatNumber": "04A", "isAvailable": true}, {"seatNumber": "04C", "isAvailable": false}
+]'
+WHERE flightId = 'FL008' AND cabinId = 'C04';
+
+-- 5. Sơ đồ ghế cho Economy (C01) trên chuyến bay FL009
+-- Dữ liệu của bạn: Ghế '22D' đã được đặt (BK008)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "20A", "isAvailable": true}, {"seatNumber": "20B", "isAvailable": true}, {"seatNumber": "20C", "isAvailable": true},
+  {"seatNumber": "20D", "isAvailable": true}, {"seatNumber": "20E", "isAvailable": true}, {"seatNumber": "20F", "isAvailable": true},
+  {"seatNumber": "21A", "isAvailable": true}, {"seatNumber": "21B", "isAvailable": true}, {"seatNumber": "21C", "isAvailable": true},
+  {"seatNumber": "21D", "isAvailable": false}, {"seatNumber": "21E", "isAvailable": true}, {"seatNumber": "21F", "isAvailable": true},
+  {"seatNumber": "22A", "isAvailable": true}, {"seatNumber": "22B", "isAvailable": true}, {"seatNumber": "22C", "isAvailable": true},
+  {"seatNumber": "22D", "isAvailable": false}, {"seatNumber": "22E", "isAvailable": true}, {"seatNumber": "22F", "isAvailable": true}
+]'
+WHERE flightId = 'FL009' AND cabinId = 'C01';
+
+
+
+
+
+
+
+-- === Hạng Economy (C01) ===
+
+-- Sơ đồ ghế cho ('FL002', 'C01')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "20A", "isAvailable": true}, {"seatNumber": "20B", "isAvailable": true}, {"seatNumber": "20C", "isAvailable": true},
+  {"seatNumber": "21A", "isAvailable": true}, {"seatNumber": "21B", "isAvailable": false}, {"seatNumber": "21C", "isAvailable": true},
+  {"seatNumber": "22A", "isAvailable": true}, {"seatNumber": "22B", "isAvailable": true}, {"seatNumber": "22C", "isAvailable": true}
+]'
+WHERE flightId = 'FL002' AND cabinId = 'C01';
+
+-- Sơ đồ ghế cho ('FL004', 'C01')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "15A", "isAvailable": true}, {"seatNumber": "15B", "isAvailable": true}, {"seatNumber": "15C", "isAvailable": true},
+  {"seatNumber": "16A", "isAvailable": true}, {"seatNumber": "16B", "isAvailable": false}, {"seatNumber": "16C", "isAvailable": true},
+  {"seatNumber": "17A", "isAvailable": true}, {"seatNumber": "17B", "isAvailable": true}, {"seatNumber": "17C", "isAvailable": true}
+]'
+WHERE flightId = 'FL004' AND cabinId = 'C01';
+
+-- Sơ đồ ghế cho ('FL005', 'C01')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "30A", "isAvailable": true}, {"seatNumber": "30B", "isAvailable": true}, {"seatNumber": "30C", "isAvailable": true},
+  {"seatNumber": "31A", "isAvailable": true}, {"seatNumber": "31B", "isAvailable": true}, {"seatNumber": "31C", "isAvailable": true}
+]'
+WHERE flightId = 'FL005' AND cabinId = 'C01';
+
+-- Sơ đồ ghế cho ('FL006', 'C01')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "30A", "isAvailable": true}, {"seatNumber": "30B", "isAvailable": true}, {"seatNumber": "30C", "isAvailable": true},
+  {"seatNumber": "31A", "isAvailable": true}, {"seatNumber": "31B", "isAvailable": false}, {"seatNumber": "31C", "isAvailable": true}
+]'
+WHERE flightId = 'FL006' AND cabinId = 'C01';
+
+-- Sơ đồ ghế cho ('FL008', 'C01')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "25A", "isAvailable": true}, {"seatNumber": "25B", "isAvailable": true}, {"seatNumber": "25C", "isAvailable": true},
+  {"seatNumber": "26A", "isAvailable": true}, {"seatNumber": "26B", "isAvailable": true}, {"seatNumber": "26C", "isAvailable": true}
+]'
+WHERE flightId = 'FL008' AND cabinId = 'C01';
+
+-- === Hạng Premium Economy (C02) ===
+
+-- Sơ đồ ghế cho ('FL001', 'C02')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "10A", "isAvailable": true}, {"seatNumber": "10C", "isAvailable": true},
+  {"seatNumber": "10D", "isAvailable": false}, {"seatNumber": "10E", "isAvailable": true}, {"seatNumber": "10F", "isAvailable": true},
+  {"seatNumber": "11A", "isAvailable": true}, {"seatNumber": "11C", "isAvailable": true},
+  {"seatNumber": "11D", "isAvailable": true}, {"seatNumber": "11E", "isAvailable": true}, {"seatNumber": "11F", "isAvailable": true}
+]'
+WHERE flightId = 'FL001' AND cabinId = 'C02';
+
+-- Sơ đồ ghế cho ('FL007', 'C02')
+-- Dữ liệu của bạn: Ghế '10F' đã được đặt (BK006)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "10A", "isAvailable": true}, {"seatNumber": "10C", "isAvailable": true},
+  {"seatNumber": "10D", "isAvailable": true}, {"seatNumber": "10E", "isAvailable": true}, {"seatNumber": "10F", "isAvailable": false},
+  {"seatNumber": "11A", "isAvailable": true}, {"seatNumber": "11C", "isAvailable": true},
+  {"seatNumber": "11D", "isAvailable": true}, {"seatNumber": "11E", "isAvailable": true}, {"seatNumber": "11F", "isAvailable": true}
+]'
+WHERE flightId = 'FL007' AND cabinId = 'C02';
+
+-- Sơ đồ ghế cho ('FL010', 'C02')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "12A", "isAvailable": true}, {"seatNumber": "12C", "isAvailable": true},
+  {"seatNumber": "12D", "isAvailable": true}, {"seatNumber": "12E", "isAvailable": true}, {"seatNumber": "12F", "isAvailable": true},
+  {"seatNumber": "14A", "isAvailable": true}, {"seatNumber": "14C", "isAvailable": true},
+  {"seatNumber": "14D", "isAvailable": true}, {"seatNumber": "14E", "isAvailable": true}, {"seatNumber": "14F", "isAvailable": true}
+]'
+WHERE flightId = 'FL010' AND cabinId = 'C02';
+
+-- === Hạng Business (C03) ===
+
+-- Sơ đồ ghế cho ('FL005', 'C03')
+-- Dữ liệu của bạn: Ghế '02A' đã được đặt (BK004)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "01A", "isAvailable": true}, {"seatNumber": "01K", "isAvailable": true},
+  {"seatNumber": "02A", "isAvailable": false}, {"seatNumber": "02K", "isAvailable": true},
+  {"seatNumber": "03A", "isAvailable": true}, {"seatNumber": "03K", "isAvailable": true},
+  {"seatNumber": "04A", "isAvailable": true}, {"seatNumber": "04K", "isAvailable": false}
+]'
+WHERE flightId = 'FL005' AND cabinId = 'C03';
+
+-- Sơ đồ ghế cho ('FL006', 'C03')
+-- Dữ liệu của bạn: Ghế '01B' đã được đặt (BK005)
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "01A", "isAvailable": true}, {"seatNumber": "01B", "isAvailable": false},
+  {"seatNumber": "02A", "isAvailable": true}, {"seatNumber": "02B", "isAvailable": true},
+  {"seatNumber": "03A", "isAvailable": true}, {"seatNumber": "03B", "isAvailable": true},
+  {"seatNumber": "04A", "isAvailable": true}, {"seatNumber": "04B", "isAvailable": true}
+]'
+WHERE flightId = 'FL006' AND cabinId = 'C03';
+
+-- Sơ đồ ghế cho ('FL007', 'C03')
+UPDATE FlightCabinClass
+SET seatMap = '[
+  {"seatNumber": "05A", "isAvailable": true}, {"seatNumber": "05K", "isAvailable": true},
+  {"seatNumber": "06A", "isAvailable": true}, {"seatNumber": "06K", "isAvailable": true},
+  {"seatNumber": "07A", "isAvailable": true}, {"seatNumber": "07K", "isAvailable": false},
+  {"seatNumber": "08A", "isAvailable": true}, {"seatNumber": "08K", "isAvailable": true}
+]'
+WHERE flightId = 'FL007' AND cabinId = 'C03';
