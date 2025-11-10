@@ -1,7 +1,6 @@
 import "react-native-gesture-handler";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 // Import screens
@@ -18,6 +17,7 @@ import CheckoutPayment from "../screens/CheckoutPayment";
 import CheckoutPaymentSuccess from "../screens/CheckoutPaymentSuccess";
 import ProfileScreen from "../screens/ProfileScreen";
 import LoginScreen from "../screens/LoginScreen";
+import BookingDetailScreen from "../screens/BookingDetailScreen";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -46,6 +46,7 @@ export type HomeStackParamList = {
   CheckoutSelectSeats: Record<string, unknown>;
   CheckoutPayment: undefined;
   CheckoutPaymentSuccess: Record<string, unknown>;
+  BookingDetail: Record<string, unknown>;
 };
 
 export type SearchStackParamList = {
@@ -59,6 +60,7 @@ export type SearchStackParamList = {
   CheckoutSelectSeats: Record<string, unknown>;
   CheckoutPayment: undefined;
   CheckoutPaymentSuccess: Record<string, unknown>;
+  BookingDetail: Record<string, unknown>;
 };
 
 export type ProfileStackParamList = {
@@ -75,7 +77,6 @@ const HomeStackNav = createNativeStackNavigator<HomeStackParamList>();
 const SearchStackNav = createNativeStackNavigator<SearchStackParamList>();
 const ProfileStackNav = createNativeStackNavigator<ProfileStackParamList>();
 
-// Home Stack
 function HomeStack() {
   return (
     <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -90,11 +91,11 @@ function HomeStack() {
       <HomeStackNav.Screen name="CheckoutSelectSeats" component={CheckoutSelectSeats} />
       <HomeStackNav.Screen name="CheckoutPayment" component={CheckoutPayment} />
       <HomeStackNav.Screen name="CheckoutPaymentSuccess" component={CheckoutPaymentSuccess} />
+      <HomeStackNav.Screen name="BookingDetail" component={BookingDetailScreen} />
     </HomeStackNav.Navigator>
   );
 }
 
-// Search Stack
 function SearchStack() {
   return (
     <SearchStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -108,11 +109,11 @@ function SearchStack() {
       <SearchStackNav.Screen name="CheckoutSelectSeats" component={CheckoutSelectSeats} />
       <SearchStackNav.Screen name="CheckoutPayment" component={CheckoutPayment} />
       <SearchStackNav.Screen name="CheckoutPaymentSuccess" component={CheckoutPaymentSuccess} />
+      <SearchStackNav.Screen name="BookingDetail" component={BookingDetailScreen} />
     </SearchStackNav.Navigator>
   );
 }
 
-// Profile Stack
 function ProfileStack() {
   return (
     <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -121,17 +122,13 @@ function ProfileStack() {
   );
 }
 
-// ============================================================================
-// MAIN TAB NAVIGATOR
-// ============================================================================
-
 function MainTabNavigator() {
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: string;
+          let iconName = "";
           switch (route.name) {
             case "Home":
               iconName = focused ? "home" : "home-outline";
@@ -142,8 +139,6 @@ function MainTabNavigator() {
             case "Profile":
               iconName = focused ? "account" : "account-outline";
               break;
-            default:
-              iconName = "circle";
           }
           return <Icon name={iconName} size={size} color={color} />;
         },
@@ -167,16 +162,9 @@ function MainTabNavigator() {
   );
 }
 
-// ============================================================================
-// ROOT STACK NAVIGATOR
-// ============================================================================
-
 export default function AppNavigation() {
   return (
-    <RootStack.Navigator
-      initialRouteName="Login"
-      screenOptions={{ headerShown: false }}
-    >
+    <RootStack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Login" component={LoginScreen} />
       <RootStack.Screen name="MainTabs" component={MainTabNavigator} />
     </RootStack.Navigator>

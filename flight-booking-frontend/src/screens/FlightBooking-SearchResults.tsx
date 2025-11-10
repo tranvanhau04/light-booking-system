@@ -1,277 +1,189 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  StatusBar,
-  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import flightService, { Flight } from '../services/flightService';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { Flight, Itinerary } from '../types/flight'; // Import types
 
-interface FlightSearchResultsProps {
-  navigation?: any;
-  route?: any;
+// =================================================================
+// ĐỊNH NGHĨA TYPES
+// =================================================================
+type FilterScreenRouteProp = RouteProp<{
+  params: {
+    // Dữ liệu gốc
+    outboundFlights: Flight[];
+    returnFlights: Flight[]; 
+    searchCriteria: { tripType: string };
+    allAirlines: string[];
+    passengers: PassengerCount; // <--- THÊM DÒNG NÀY
+    
+    // Bộ lọc hiện tại
+    currentSort: string;
+    currentStops: string;
+    currentAirlines: string[];
+  }
+}, 'params'>;
+interface PassengerCount {
+  adults: number;
+  children: number;
+  infants: number;
 }
+// =================================================================
+// COMPONENT CHÍNH
+// =================================================================
+const FlightSearchResults: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const route = useRoute<FilterScreenRouteProp>();
 
-const FlightSearchResults: React.FC<FlightSearchResultsProps> = ({ navigation, route }) => {
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [filteredFlights, setFilteredFlights] = useState<Flight[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedSort, setSelectedSort] = useState('Best');
-  const [selectedStops, setSelectedStops] = useState('Any stops');
-  const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
-  const [allAirlines, setAllAirlines] = useState<string[]>([]);
+  // Lấy params từ navigation
+  const {
+    outboundFlights = [],
+    returnFlights = [],
+    searchCriteria,
+    allAirlines = [],
+    currentSort,
+    currentStops,
+    currentAirlines
+  } = route.params || {};
 
-  // Lấy params từ navigation
-  const searchParams = route?.params || {
-    from: 'London (LCY)',
-    to: 'New York (JFK)',
-    departDate: 'Jul 14',
-    returnDate: 'Jul 17',
-    travellers: 1,
-    cabinClass: 'Economy',
-  };
+  // State cho các lựa chọn TẠM THỜI trên màn hình này
+  const [selectedSort, setSelectedSort] = useState(currentSort || 'Best');
+  const [selectedStops, setSelectedStops] = useState(currentStops || 'Any stops');
+  const [selectedAirlines, setSelectedAirlines] = useState<string[]>(currentAirlines || allAirlines);
 
-  useEffect(() => {
-    // Search flights khi component mount
-    const results = flightService.searchFlights(searchParams);
-    setFlights(results);
-    setFilteredFlights(results);
+  // TÍNH TOÁN SỐ LƯỢNG KẾT QUẢ (Để hiển thị trên nút "Show")
+  // Logic này sao chép từ FlightListScreen để đếm số lượng
+  const { totalFlightsFound, originalTotal } = useMemo(() => {
+    let filteredOut = [...outboundFlights];
+    let filteredRet = [...returnFlights];
 
-    // Lấy danh sách airlines duy nhất
-    const airlines = [...new Set(results.map(f => f.airline))];
-    setAllAirlines(airlines);
-    setSelectedAirlines(airlines);
-  }, []);
+    // Filter stops
+    if (selectedStops === '1 stop or nonstop') {
+      filteredOut = filteredOut.filter(f => f.stopCount <= 1);
+      filteredRet = filteredRet.filter(f => f.stopCount <= 1);
+    } else if (selectedStops === 'Nonstop only') {
+      filteredOut = filteredOut.filter(f => f.stopCount === 0);
+      filteredRet = filteredRet.filter(f => f.stopCount === 0);
+    }
 
-  useEffect(() => {
-    // Apply filters và sort
-    let filtered = [...flights];
+    // Filter airlines
+    if (selectedAirlines.length > 0 && selectedAirlines.length < allAirlines.length) {
+      filteredOut = filteredOut.filter(f => selectedAirlines.includes(f.airline));
+      filteredRet = filteredRet.filter(f => selectedAirlines.includes(f.airline));
+    }
 
-    // Filter by stops
-    filtered = flightService.filterByStops(filtered, selectedStops);
+    // Tính tổng
+    let total = 0;
+    let original = 0;
 
-    // Filter by airlines
-    filtered = flightService.filterByAirlines(filtered, selectedAirlines);
+    if (searchCriteria?.tripType === 'round-trip' && returnFlights.length > 0) {
+      total = filteredOut.length * filteredRet.length;
+      original = outboundFlights.length * returnFlights.length;
+    } else {
+      total = filteredOut.length;
+      original = outboundFlights.length;
+    }
+    return { totalFlightsFound: total, originalTotal: original };
+  }, [outboundFlights, returnFlights, selectedStops, selectedAirlines, allAirlines, searchCriteria?.tripType]);
 
-    // Sort
-    filtered = flightService.sortFlights(filtered, selectedSort);
 
-    setFilteredFlights(filtered);
-  }, [flights, selectedStops, selectedAirlines, selectedSort]);
+  const toggleAirline = (airline: string) => {
+    if (selectedAirlines.includes(airline)) {
+      setSelectedAirlines(selectedAirlines.filter(a => a !== airline));
+    } else {
+      setSelectedAirlines([...selectedAirlines, airline]);
+    }
+  };
 
-  const toggleAirline = (airline: string) => {
-    if (selectedAirlines.includes(airline)) {
-      setSelectedAirlines(selectedAirlines.filter(a => a !== airline));
+  const selectAllAirlines = () => {
+    if (selectedAirlines.length === allAirlines.length) {
+        setSelectedAirlines([]);
     } else {
-      setSelectedAirlines([...selectedAirlines, airline]);
+        setSelectedAirlines([...allAirlines]);
     }
-  };
+  };
 
-  const selectAllAirlines = () => {
-    setSelectedAirlines([...allAirlines]);
-  };
-
-  const getFlightIcon = (flight: Flight) => {
-    if (flight.icon === 'flash') {
-      return <Ionicons name="flash" size={24} color={flight.iconColor} />;
-    } else if (flight.icon === 'circle') {
-      return <View style={[styles.circleIcon, { backgroundColor: flight.iconColor }]} />;
-    }
-    return <Ionicons name="airplane" size={24} color={flight.iconColor} />;
-  };
-
-  const handleFlightSelect = (flightId: string) => {
-    console.log('Navigating to FlightBookingDetails with ID:', flightId);
-    navigation.navigate('FlightBookingDetails', { 
-      flightId: flightId,
-      searchParams: searchParams 
+  // HÀM QUAN TRỌNG: Gửi bộ lọc mới về màn hình List
+  const handleShowResults = () => {
+    // Quay về màn hình 'List' và gửi các bộ lọc mới
+    navigation.navigate('List', {
+        // Gửi các bộ lọc MỚI
+        newSort: selectedSort,
+        newStops: selectedStops,
+        newAirlines: selectedAirlines,
+        
+        // Gửi lại các params gốc (để 'List' không bị mất)
+        outboundFlights: outboundFlights,
+        returnFlights: returnFlights,
+        searchCriteria: searchCriteria,
+        passengers: route.params.passengers // Lấy từ route.params
     });
   };
 
-  // Group flights by direction
-  const groupedFlights: Flight[][] = [];
-  let currentGroup: Flight[] = [];
-  
-  filteredFlights.forEach((flight, index) => {
-    currentGroup.push(flight);
-    
-    const nextFlight = filteredFlights[index + 1];
-    if (!nextFlight || nextFlight.departureCity !== flight.departureCity) {
-      groupedFlights.push([...currentGroup]);
-      currentGroup = [];
-    }
-  });
+  const handleClearAll = () => {
+    setSelectedStops('Any stops');
+    setSelectedAirlines([...allAirlines]);
+    setSelectedSort('Best');
+  };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>
-            {searchParams.from?.split(' (')[0] || 'London'} - {searchParams.to?.split(' (')[0] || 'New York'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {searchParams.departDate || 'Jul 14'}
-            {searchParams.returnDate ? ` - ${searchParams.returnDate}` : ''}, 
-            {' '}{searchParams.travellers || 1} traveller{(searchParams.travellers || 1) > 1 ? 's' : ''}
-          </Text>
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Đây là toàn bộ giao diện Modal của bạn */}
+      <View style={styles.modalContent}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <MaterialIcons name="close" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Sorts & Filters</Text>
+          <View style={{ width: 24 }} />
         </View>
-        
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
 
-      {/* Filter Buttons */}
-      <View style={styles.filterContainer}>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <MaterialIcons name="tune" size={20} color="#000" />
-          <Text style={styles.filterButtonText}>Sort & Filters</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.chipButton}>
-          <Text style={styles.chipButtonText}>{selectedSort}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.chipButton}>
-          <Text style={styles.chipButtonText}>{selectedStops === 'Any stops' ? 'Stops' : selectedStops}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.chipButton}>
-          <Text style={styles.chipButtonText}>Time</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Flight List */}
-      <ScrollView style={styles.flightList} showsVerticalScrollIndicator={false}>
-        {groupedFlights.map((group, groupIndex) => (
-          <View key={groupIndex}>
-            {group.map((flight, flightIndex) => (
-              <TouchableOpacity 
-                key={flight.id}
-                style={styles.flightCard}
-                onPress={() => handleFlightSelect(flight.id)}
-                activeOpacity={0.7}
+        <ScrollView style={styles.modalBody}>
+          {/* Sort by */}
+          <Text style={styles.sectionTitleModal}>Sort by</Text>
+          <View style={styles.sortOptions}>
+            {['Best', 'Price: Low to High', 'Price: High to Low', 'Duration: Shortest'].map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={styles.radioOption}
+                onPress={() => setSelectedSort(option)}
               >
-                <View style={styles.flightInfo}>
-                  <View style={styles.flightIcon}>
-                    {getFlightIcon(flight)}
-                  </View>
-                  
-                  <View style={styles.flightDetails}>
-                    <View style={styles.timeRow}>
-                      <Text style={styles.time}>{flight.departureTime}</Text>
-                      <View style={styles.durationLine}>
-                        <View style={styles.line} />
-                      </View>
-                      <Text style={styles.time}>{flight.arrivalTime}</Text>
-                    </View>
-                    
-                    <View style={styles.airportRow}>
-                      <Text style={styles.airport}>{flight.departureAirport}</Text>
-                      <Text style={styles.airport}>{flight.arrivalAirport}</Text>
-                    </View>
-                    
-                    <Text style={styles.airline}>{flight.airline}</Text>
-                  </View>
-                  
-                  <View style={styles.flightMeta}>
-                    <Text style={styles.duration}>{flight.duration}</Text>
-                    <Text style={styles.stops}>{flight.stopsText}</Text>
-                  </View>
-                </View>
+                <Text style={styles.radioText}>{option}</Text>
+                {selectedSort === option && (
+                  <Ionicons name="checkmark" size={24} color="#00BCD4" />
+                )}
               </TouchableOpacity>
             ))}
-            
-            <TouchableOpacity 
-              style={styles.groupFooter}
-              onPress={() => handleFlightSelect(group[group.length - 1].id)}
-              activeOpacity={0.7}
-            >
-              <TouchableOpacity 
-                style={styles.favoriteButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  console.log('Favorite toggled for:', group[group.length - 1].id);
-                }}
-              >
-                <Ionicons name="heart-outline" size={24} color="#000" />
-              </TouchableOpacity>
-              <Text style={styles.price}>${group[group.length - 1].price}</Text>
-            </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
 
-      {/* Sort & Filter Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Sorts & Filters</Text>
-              <View style={{ width: 24 }} />
-            </View>
+          {/* Stops */}
+          <Text style={styles.sectionTitleModal}>Stops</Text>
+          {['Any stops', '1 stop or nonstop', 'Nonstop only'].map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={styles.radioOption}
+              onPress={() => setSelectedStops(option)}
+            >
+              <Text style={styles.radioText}>{option}</Text>
+              {selectedStops === option && (
+                <Ionicons name="checkmark" size={24} color="#00BCD4" />
+              )}
+            </TouchableOpacity>
+          ))}
 
-            <ScrollView style={styles.modalBody}>
-              {/* Sort by */}
-              <Text style={styles.sectionTitle}>Sort by</Text>
-              <View style={styles.sortOptions}>
-                {['Best', 'Price: Low to High', 'Price: High to Low', 'Duration: Shortest'].map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={styles.radioOption}
-                    onPress={() => setSelectedSort(option)}
-                  >
-                    <Text style={styles.radioText}>{option}</Text>
-                    {selectedSort === option && (
-                      <Ionicons name="checkmark" size={24} color="#6B46C1" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Stops */}
-              <Text style={styles.sectionTitle}>Stops</Text>
-              {['Any stops', '1 stop or nonstop', 'Nonstop only'].map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={styles.radioOption}
-                  onPress={() => setSelectedStops(option)}
-                >
-                  <Text style={styles.radioText}>{option}</Text>
-                  {selectedStops === option && (
-                    <Ionicons name="checkmark" size={24} color="#6B46C1" />
-                  )}
-                </TouchableOpacity>
-              ))}
-
-              {/* Airlines */}
-              <Text style={styles.sectionTitle}>Airlines</Text>
+          {/* Airlines */}
+          {allAirlines.length > 0 && (
+            <>
+              <Text style={styles.sectionTitleModal}>Airlines</Text>
               <TouchableOpacity 
                 style={styles.checkboxOption}
                 onPress={selectAllAirlines}
@@ -304,294 +216,137 @@ const FlightSearchResults: React.FC<FlightSearchResultsProps> = ({ navigation, r
                   </View>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </>
+          )}
+        </ScrollView>
 
-            {/* Modal Footer */}
-            <View style={styles.modalFooter}>
-              <TouchableOpacity 
-                style={styles.clearButton}
-                onPress={() => {
-                  setSelectedStops('Any stops');
-                  setSelectedAirlines([]);
-                  setSelectedSort('Best');
-                }}
-              >
-                <Text style={styles.clearButtonText}>Clear all</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.showButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.showButtonText}>Show {filteredFlights.length} of {flights.length}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        {/* Modal Footer */}
+        <View style={styles.modalFooter}>
+          <TouchableOpacity 
+            style={styles.clearButton}
+            onPress={handleClearAll}
+          >
+            <Text style={styles.clearButtonText}>Clear all</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.showButton}
+            onPress={handleShowResults}
+          >
+            <Text style={styles.showButtonText}>
+              Show {totalFlightsFound} of {originalTotal}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </SafeAreaView>
-  );
+      </View>
+    </SafeAreaView>
+  );
 };
 
+// =================================================================
+// STYLES (Lấy từ file FlightSearchResults.tsx)
+// =================================================================
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  notificationButton: {
-    padding: 8,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    gap: 8,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    gap: 8,
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#000',
-  },
-  chipButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  chipButtonText: {
-    fontSize: 14,
-    color: '#000',
-  },
-  flightList: {
-    flex: 1,
-  },
-  flightCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    padding: 16,
-  },
-  flightInfo: {
-    flexDirection: 'row',
-  },
-  flightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circleIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  flightDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  time: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  durationLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: 8,
-  },
-  line: {
-    height: '100%',
-    backgroundColor: '#E0E0E0',
-  },
-  airportRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  airport: {
-    fontSize: 12,
-    color: '#666',
-  },
-  airline: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  flightMeta: {
-    alignItems: 'flex-end',
-  },
-  duration: {
-    fontSize: 12,
-    color: '#666',
-  },
-  stops: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  groupFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    marginBottom: 8,
-  },
-  favoriteButton: {
-    padding: 4,
-  },
-  price: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  sortOptions: {
-    marginBottom: 8,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-  },
-  radioText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  checkboxOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-  },
-  checkboxText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#6B46C1',
-    borderColor: '#6B46C1',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  clearButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  clearButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  showButton: {
-    flex: 2,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#00BCD4',
-  },
-  showButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5', // Màu nền mờ
+  },
+  modalContent: {
+    flex: 1,
+    backgroundColor: '#fff',
+    // Xóa border radius nếu đây là toàn màn hình
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  modalBody: {
+    flex: 1, // Tự động chiếm không gian
+    padding: 20,
+  },
+  sectionTitleModal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  sortOptions: {
+    marginBottom: 8,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  radioText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  checkboxOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#00BCD4',
+    borderColor: '#00BCD4',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  clearButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  showButton: {
+    flex: 2,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#00BCD4',
+  },
+  showButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
 });
 
 export default FlightSearchResults;

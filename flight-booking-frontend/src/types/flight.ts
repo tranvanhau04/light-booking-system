@@ -92,3 +92,29 @@ export interface BookFlightResponse {
   };
   message?: string;
 }
+
+// src/types.ts
+
+// (Thêm vào cuối file này)
+
+export interface Flight {
+  flightId: string;
+  flightCode: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: number; 
+  airline: string;
+  basePrice: number;
+  stopCount: number;
+}
+
+export interface Itinerary {
+    id: string; 
+    outboundFlight: Flight;
+    returnFlight: Flight | null; 
+    totalPrice: number;
+}
+
+// (Bạn cũng có thể chuyển các 'types' khác vào đây, ví dụ 'Airport')

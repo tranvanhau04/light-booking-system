@@ -1,222 +1,267 @@
-import { useState, useEffect, useMemo } from 'react'; // <-- THÊM useEffect, useMemo
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator, // <-- THÊM
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Alert, 
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useBooking } from '../context/BookingContext'; // <-- IMPORT HOOK
+import { useBooking } from '../context/BookingContext';
 import {
-  flightService,
-  BackendFlight,
-  SeatMapItem,
+  flightService,
+  BackendFlight,
+  SeatMapItem,
 } from '../services/flightService'; // <-- IMPORT SERVICE
 
-// Interface 'Seat' của bạn (Giữ nguyên)
+// Interface 'Seat' của bạn
 type SeatStatus = 'available' | 'unavailable' | 'selected';
 interface Seat {
-  row: number;
-  column: string;
-  status: SeatStatus;
-  price: number;
-  cabinId: string; // <-- Thêm cabinId để biết thuộc hạng vé nào
+  row: number;
+  column: string;
+  status: SeatStatus;
+  price: number;
+  cabinId: string;
+  flightId: string;
+ seatNumber: string; // <-- Thêm flightId để lưu vào context
 }
 
 export default function CheckoutSelectSeats({ navigation, route }: any) {
-  const { setSelectedSeatsData } = useBooking(); // <-- LẤY HÀM SET
-  // Giả định bạn nhận được flightId và cabinId từ màn hình trước
-  // Ví dụ: { flightId: 'FL001', cabinId: 'C01' }
-  const { flightId, cabinId } = route?.params;
+  const { setSelectedSeatsData } = useBooking(); 
+  
+  // Giả định bạn nhận được flightId và cabinId từ màn hình trước
+  const { flightId, cabinId } = route?.params;
 
-  // === 1. STATE MỚI ĐỂ GỌI API ===
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [seats, setSeats] = useState<Seat[]>([]); // Khởi tạo mảng rỗng
+  // === 1. STATE MỚI ĐỂ GỌI API ===
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [seats, setSeats] = useState<Seat[]>([]); // Sơ đồ ghế đã được xử lý
+  // State để lưu Flight data (để dùng giá basePrice nếu cần)
+  const [flight, setFlight] = useState<BackendFlight | null>(null); 
 
-  // === 2. GỌI API BẰNG useEffect ===
-  useEffect(() => {
-    if (!flightId || !cabinId) {
-      setError('Không có thông tin chuyến bay.');
-      setLoading(false);
-      return;
-    }
+  // === 2. GỌI API VÀ LẤY SƠ ĐỒ GHẾ ===
+  useEffect(() => {
+    if (!flightId || !cabinId) {
+      setError('Không có thông tin chuyến bay để chọn ghế.');
+      setLoading(false);
+      return;
+    }
 
-    const fetchFlightData = async () => {
-      try {
-        setLoading(true);
-        // 1. Gọi API để lấy toàn bộ chi tiết chuyến bay
-        const flightData = await flightService.getFlightDetails(flightId);
+    const fetchFlightData = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Gọi API để lấy toàn bộ chi tiết chuyến bay (bao gồm FlightCabinClasses)
+        const flightData = await flightService.getFlightDetails(flightId);
+        setFlight(flightData); // Lưu data flight
 
-        // 2. Tìm đúng hạng vé (cabin class) mà người dùng chọn
-        const cabin = flightData.flightCabinClasses?.find(
-          (c) => c.cabinId === cabinId
-        );
+        // 2. Tìm đúng hạng vé (cabin class) mà người dùng chọn
+        const cabin = flightData.flightCabinClasses?.find(
+          (c) => c.cabinId === cabinId
+        );
 
-        if (!cabin || !cabin.seatMap) {
-          throw new Error('Không tìm thấy sơ đồ ghế cho hạng vé này.');
+        if (!cabin || !cabin.seatMap) {
+            // Đây là nơi lỗi xảy ra
+          throw new Error('Không tìm thấy sơ đồ ghế cho hạng vé này.');
+        }
+
+        // BƯỚC QUAN TRỌNG: PARSE JSON STRING HOẶC DÙNG OBJECT
+        let seatMapArray: SeatMapItem[] = [];
+        try {
+            seatMapArray = (typeof cabin.seatMap === 'string') 
+                ? JSON.parse(cabin.seatMap) 
+                : cabin.seatMap;
+        } catch (e) {
+            // Nếu parse thất bại (có thể là dữ liệu JSON bị lỗi)
+            throw new Error('Dữ liệu sơ đồ ghế bị lỗi định dạng JSON.');
         }
 
-        // 3. "Biến đổi" (Transform) seatMap từ API thành mảng Seat[]
-        const initialSeats = cabin.seatMap.map((apiSeat: SeatMapItem) => {
-          // Parse "1A" thành row: 1, column: "A"
-          const match = apiSeat.seatNumber.match(/^(\d+)([A-Z])$/);
-          if (!match) return null; // Bỏ qua nếu ghế không đúng định dạng
-
-          const row = parseInt(match[1]);
-          const col = match[2];
-          const status = apiSeat.isAvailable ? 'available' : 'unavailable';
-          
-          // Dùng giá từ API, nếu không có thì dùng logic giá cũ
-          const price = apiSeat.price ?? (['D', 'E'].includes(col) ? 10 : 5);
-
-          return {
-            row,
-            column: col,
-            status,
-            price,
-            cabinId: cabin.cabinId, // Lưu lại cabinId
-          };
-        }).filter(Boolean) as Seat[]; // Lọc bỏ các ghế bị null
-
-        setSeats(initialSeats);
-        setError(null);
-      } catch (err: any) {
-        console.error(err);
-        setError(
-          err.response?.data?.error ||
-            err.message ||
-            'Lỗi khi tải sơ đồ ghế'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFlightData();
-  }, [flightId, cabinId]); // Chạy lại nếu 2 giá trị này thay đổi
-
-  // === 3. LOGIC CŨ (Không cần thay đổi nhiều) ===
-
-  // Tối ưu hóa tính toán bằng useMemo
-  const { selectedSeats, totalPrice } = useMemo(() => {
-    const selected = seats.filter((s) => s.status === 'selected');
-    const price = selected.reduce((sum, seat) => sum + seat.price, 0);
-    return { selectedSeats: selected, totalPrice: price };
-  }, [seats]);
-
-  const handleSeatPress = (row: number, column: string) => {
-    setSeats((prev) =>
-      prev.map((seat) => {
-        if (seat.row === row && seat.column === column) {
-          if (seat.status === 'unavailable') return seat;
-          return {
-            ...seat,
-            status: seat.status === 'selected' ? 'available' : 'selected',
-          };
+        // Đảm bảo seatMapArray là một mảng
+        if (!Array.isArray(seatMapArray)) {
+             throw new Error('Sơ đồ ghế không phải là một mảng hợp lệ.');
         }
-        return seat;
-      })
-    );
-  };
 
-  const getSeatByPosition = (row: number, column: string): Seat | undefined => {
-    return seats.find((s) => s.row === row && s.column === column);
-  };
 
-  const handleSelect = () => {
-  if (selectedSeats.length === 0) {
-    alert('Please select at least one seat');
-    return;
-  }
+        // 3. "Biến đổi" (Transform) seatMap từ API thành mảng Seat[]
+        // 3. "Biến đổi" (Transform) seatMap từ API thành mảng Seat[]
+        const initialSeats = seatMapArray.map((apiSeat: SeatMapItem) => {
+          // Parse "01A" thành row: 1, column: "A" (VẪN DÙNG ĐỂ RENDER UI)
+          const match = apiSeat.seatNumber.match(/^(\d+)([A-Z])$/);
+          if (!match) return null; 
 
-  // 1. LƯU data ghế đã chọn vào "kho chứa"
-  setSelectedSeatsData(selectedSeats); 
+          const row = parseInt(match[1]);
+          const col = match[2];
+          const status = apiSeat.isAvailable ? 'available' : 'unavailable';
+          const price = apiSeat.price ?? 5; 
 
-  // 2. Chuyển sang màn hình Thanh toán
-  navigation.navigate('CheckoutPayment');
-};
-  
-  // === 4. XỬ LÝ TRẠNG THÁI LOADING VÀ ERROR ===
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator style={{ flex: 1 }} size="large" />
-      </SafeAreaView>
-    );
-  }
+          return {
+            row, // Dùng để render UI
+            column: col, // Dùng để render UI
+            status,
+            price,
+            cabinId: cabin.cabinId,
+            flightId: flightId,
+            seatNumber: apiSeat.seatNumber, // <-- LƯU LẠI GIÁ TRỊ GỐC "01A"
+          };
+        }).filter(Boolean) as Seat[];
 
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={{ textAlign: 'center', padding: 20, color: 'red' }}>
-          {error}
-        </Text>
-      </SafeAreaView>
-    );
-  }
+        setSeats(initialSeats);
+        setError(null);
+      } catch (err: any) {
+        console.error('Seat Fetch Error:', err);
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            'Lỗi khi tải sơ đồ ghế. Kiểm tra API.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // === 5. PHẦN RENDER (Giữ nguyên) ===
-  // (Chúng ta cần xác định 'rows' và 'columns' từ data)
-  const allRows = Array.from(new Set(seats.map(s => s.row))).sort((a,b) => a-b);
-  // Giữ nguyên layout cột 3-3 của bạn
-  const columnsLeft = ['A', 'B', 'C'];
-  const columnsRight = ['D', 'E', 'F'];
+    fetchFlightData();
+  }, [flightId, cabinId]); // Chạy lại nếu 2 giá trị này thay đổi
 
-  const renderSeat = (row: number, column: string) => {
-    // ... (Toàn bộ hàm renderSeat của bạn giữ nguyên, không cần sửa) ...
-    const seat = getSeatByPosition(row, column);
-    if (!seat) return <View key={`${row}-${column}`} style={[styles.seat, {borderWidth: 0}]} />; // Chỗ trống
+  // === 3. LOGIC XỬ LÝ GHẾ ===
 
-    const seatStyle = [
-      styles.seat,
-      seat.status === 'selected' && styles.seatSelected,
-      seat.status === 'unavailable' && styles.seatUnavailable,
-    ];
+  // Tối ưu hóa tính toán bằng useMemo
+  const { selectedSeats, totalPrice } = useMemo(() => {
+    const selected = seats.filter((s) => s.status === 'selected');
+    const price = selected.reduce((sum: number, seat) => sum + seat.price, 0);
+    return { selectedSeats: selected, totalPrice: price };
+  }, [seats]);
 
-    if (seat.status === 'unavailable') {
-      return (
-        <View key={`${row}-${column}`} style={seatStyle}>
-          <MaterialCommunityIcons name="close" size={18} color="#9ca3af" />
-        </View>
-      );
+  const handleSeatPress = (row: number, column: string) => {
+    // Chỉ cho phép chọn 1 ghế (theo logic bạn đang triển khai)
+    if (selectedSeats.length >= 1 && getSeatByPosition(row, column)?.status !== 'selected') {
+        alert(`Vui lòng chỉ chọn 1 ghế cho chuyến bay này.`);
+        return;
     }
 
-    return (
-      <TouchableOpacity
-        key={`${row}-${column}`}
-        style={seatStyle}
-        onPress={() => handleSeatPress(row, column)}
-        activeOpacity={0.7}
-      >
-        {seat.status === 'selected' && (
-          <MaterialCommunityIcons name="check" size={20} color="#fff" />
+    setSeats((prev) =>
+      prev.map((seat) => {
+        if (seat.row === row && seat.column === column) {
+          if (seat.status === 'unavailable') return seat;
+          return {
+            ...seat,
+            status: seat.status === 'selected' ? 'available' : 'selected',
+          };
+        }
+        // Bỏ chọn ghế khác nếu đang chọn ghế mới
+        if (selectedSeats.length === 0 || seat.status !== 'selected') {
+            return seat;
+        }
+        return { ...seat, status: 'available' };
+      })
+    );
+  };
+
+  const getSeatByPosition = (row: number, column: string): Seat | undefined => {
+    return seats.find((s) => s.row === row && s.column === column);
+  };
+
+  const handleSelect = () => {
+    if (selectedSeats.length === 0) {
+      alert('Vui lòng chọn ít nhất một ghế.');
+      return;
+    }
+  
+    const currentFlightSeats = selectedSeats.map(s => ({
+      flightId: s.flightId,
+      cabinId: s.cabinId,
+      row: s.row, // (Giữ lại nếu context của bạn cần)
+      column: s.column, // (Giữ lại nếu context của bạn cần)
+      price: s.price,
+      seatNumber: s.seatNumber // <-- SỬA Ở ĐÂY (dùng giá trị "01A" đã lưu)
+    }));
+
+    // 1. LƯU data ghế đã chọn vào "kho chứa"
+    setSelectedSeatsData(currentFlightSeats); 
+
+    // 2. Chuyển sang màn hình Thanh toán
+    navigation.navigate('CheckoutPayment');
+  };
+  
+  // === 4. XỬ LÝ TRẠNG THÁI LOADING VÀ ERROR ===
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator style={{ flex: 1 }} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', padding: 20, color: 'red' }}>
+          Lỗi: {error}
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // === 5. PHẦN RENDER ===
+  const allRows = Array.from(new Set(seats.map(s => s.row))).sort((a,b) => a-b);
+  const columnsLeft = ['A', 'B', 'C'];
+  const columnsRight = ['D', 'E', 'F'];
+
+  const renderSeat = (row: number, column: string) => {
+    const seat = getSeatByPosition(row, column);
+    if (!seat) return <View key={`${row}-${column}`} style={[styles.seat, {borderWidth: 0}]} />; // Chỗ trống
+
+    const seatStyle = [
+      styles.seat,
+      seat.status === 'selected' && styles.seatSelected,
+      seat.status === 'unavailable' && styles.seatUnavailable,
+    ];
+
+    if (seat.status === 'unavailable') {
+      return (
+        <View key={`${row}-${column}`} style={seatStyle}>
+          <MaterialCommunityIcons name="close" size={18} color="#9ca3af" />
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        key={`${row}-${column}`}
+        style={seatStyle}
+        onPress={() => handleSeatPress(row, column)}
+        activeOpacity={0.7}
+      >
+        {seat.status === 'selected' && (
+          <MaterialCommunityIcons name="check" size={20} color="#fff" />
+        )}
+        {seat.price > 5 && seat.status === 'available' && (
+            // Hiển thị giá phụ phí nếu có
+            <Text style={styles.seatPriceLabel}>${seat.price}</Text>
         )}
-      </TouchableOpacity>
-    );
-  };
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header (Giữ nguyên) */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{route?.params?.flightRoute || 'Select Seat'}</Text>
-        <View style={styles.placeholder} />
-      </View>
+      </TouchableOpacity>
+    );
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header (Giữ nguyên) */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{route?.params?.flightRoute || 'Select Seat'}</Text>
+        <View style={styles.placeholder} />
+      </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Legend (Giữ nguyên) */}
-        <View style={styles.legend}>
-         {/* ... (Toàn bộ phần legend của bạn giữ nguyên) ... */}
-         <View style={styles.legendItem}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Legend */}
+        <View style={styles.legend}>
+         <View style={styles.legendItem}>
             <View style={[styles.legendBox, styles.legendAvailable]} />
-            <Text style={styles.legendText}>Available seat (from $5-$10)</Text>
+            <Text style={styles.legendText}>Available seat (from $5)</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendBox, styles.legendUnavailable]}>
@@ -230,54 +275,53 @@ export default function CheckoutSelectSeats({ navigation, route }: any) {
             </View>
             <Text style={styles.legendText}>Selected</Text>
           </View>
-        </View>
+        </View>
 
-        {/* Seat Map (Sửa lại để dùng 'allRows' động) */}
-        <View style={styles.seatMapContainer}>
-          <View style={styles.seatMap}>
-            {/* Column Labels (Giữ nguyên) */}
-            <View style={styles.columnLabels}>
-              <View style={styles.rowLabelSpace} />
-              {columnsLeft.map((col) => (
-                <Text key={col} style={styles.columnLabel}>{col}</Text>
-              ))}
-              <View style={{ width: 20 }} /> {/* Lối đi giữa */}
-              {columnsRight.map((col) => (
-                <Text key={col} style={styles.columnLabel}>{col}</Text>
-              ))}
-            </View>
+        {/* Seat Map */}
+        <View style={styles.seatMapContainer}>
+          <View style={styles.seatMap}>
+            {/* Column Labels */}
+            <View style={styles.columnLabels}>
+              <View style={styles.rowLabelSpace} />
+              {columnsLeft.map((col) => (
+                <Text key={col} style={styles.columnLabel}>{col}</Text>
+              ))}
+              <View style={{ width: 20 }} /> {/* Lối đi giữa */}
+              {columnsRight.map((col) => (
+                <Text key={col} style={styles.columnLabel}>{col}</Text>
+              ))}
+            </View>
 
-            {/* Rows (Sửa lại) */}
-            {allRows.map((row) => (
-              <View key={row} style={styles.row}>
-                <Text style={styles.rowNumber}>{row.toString().padStart(2, '0')}</Text>
+            {/* Rows */}
+            {allRows.map((row) => (
+              <View key={row} style={styles.row}>
+                <Text style={styles.rowNumber}>{row.toString().padStart(2, '0')}</Text>
 
-                {/* Cụm ghế A–C */}
-                {columnsLeft.map((column) => renderSeat(row, column))}
+                {/* Cụm ghế A–C */}
+                {columnsLeft.map((column) => renderSeat(row, column))}
 
-                {/* Lối đi giữa */}
-                <View style={{ width: 20 }} />
+                {/* Lối đi giữa */}
+                <View style={{ width: 20 }} />
 
-                {/* Cụm ghế D–F */}
-                {columnsRight.map((column) => renderSeat(row, column))}
-              </View>
-            ))}
-          </View>
-        </View>
+                {/* Cụm ghế D–F */}
+                {columnsRight.map((column) => renderSeat(row, column))}
+              </View>
+            ))}
+          </View>
+        </View>
 
-        <View style={{ height: 120 }} />
-      </ScrollView>
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
-      {/* Footer (Giữ nguyên) */}
-      <View style={styles.footer}>
-        {/* ... (Toàn bộ phần footer của bạn giữ nguyên) ... */}
-        <View style={styles.footerLeft}>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View style={styles.footerLeft}>
           <Text style={styles.footerTitle}>
-            Select seat {selectedSeats.length} of 1
+            Select seat {selectedSeats.length} of {route?.params?.passengerCount || 1}
           </Text>
           {selectedSeats.length > 0 && (
             <Text style={styles.footerSubtitle}>
-              Seat {selectedSeats.map(s => `${s.row}${s.column}`).join(', ')} - ${totalPrice.toFixed(2)}
+              Selected: ${totalPrice.toFixed(2)}
             </Text>
           )}
         </View>
@@ -287,19 +331,18 @@ export default function CheckoutSelectSeats({ navigation, route }: any) {
           style={styles.selectButton}
           labelStyle={styles.selectButtonLabel}
           buttonColor="#06b6d4"
-          disabled={selectedSeats.length === 0}
+          disabled={selectedSeats.length !== 1} // Chỉ cho phép chọn 1 ghế cho chuyến này
         >
           Select
         </Button>
-      </View>
-    </SafeAreaView>
-  );
+      </View>
+    </SafeAreaView>
+  );
 }
 
-// ... (Toàn bộ 'styles' của bạn giữ nguyên, không cần sửa)
+// === STYLES ===
 const styles = StyleSheet.create({
-// ... Dán toàn bộ styles của bạn vào đây ...
-container: {
+  container: {
     flex: 1,
     backgroundColor: "#f9fafb",
   },
@@ -401,7 +444,7 @@ container: {
     fontSize: 15,
     fontWeight: "500",
     color: "#6b7280",
-   },
+   },
   seat: {
     width: 44,
     height: 44,
@@ -421,6 +464,13 @@ container: {
     backgroundColor: "#f3f4f6",
     borderColor: "#e5e7eb",
   },
+  seatPriceLabel: { // Style cho giá phụ phí trên ghế
+      position: 'absolute',
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: '#06b6d4',
+      bottom: 2,
+  },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",

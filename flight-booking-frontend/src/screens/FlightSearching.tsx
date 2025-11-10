@@ -9,19 +9,17 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  StatusBar,
+  KeyboardAvoidingView, 
+  Platform, 
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type TripType = 'round-trip' | 'one-way' | 'multi-city';
 type CabinClass = 'Economy' | 'Premium Economy' | 'Business' | 'First';
-
-interface Flight {
-  from: string;
-  to: string;
-  date: string;
-}
 
 interface Airport {
   name: string;
@@ -30,7 +28,11 @@ interface Airport {
   country?: string;
 }
 
-
+interface Flight {
+  from: Airport | null; 
+  to: Airport | null;   
+  date: string;
+}
 
 const FlightSearchScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -38,36 +40,29 @@ const FlightSearchScreen = () => {
   const [loadingAirports, setLoadingAirports] = useState<boolean>(false);
   const [errorAirports, setErrorAirports] = useState<string | null>(null);
 
-  // 👇 đặt ở đầu component (cùng chỗ với các useState khác)
-  const [selectedBaggageOption, setSelectedBaggageOption] = useState(null);
-  const [selectedSeatType, setSelectedSeatType] = useState(null);
-  const [selectedMealOption, setSelectedMealOption] = useState(null);
-
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
-      weekday: 'short',  // Fri
-      month: 'short',    // Jul
-      day: '2-digit',    // 14
+      weekday: 'short',
+      month: 'short',
+      day: '2-digit',
     });
   };
 
   const today = new Date();
 
   const [flights, setFlights] = useState<Flight[]>([
-    { from: '', to: '', date: formatDate(today) },
-    { from: '', to: '', date: formatDate(today) },
+    { from: null, to: null, date: formatDate(today) },
+    { from: null, to: null, date: formatDate(today) },
   ]);
   const [tripType, setTripType] = useState<TripType>('round-trip');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
   const [departDate, setDepartDate] = useState(formatDate(today));
   const [returnDate, setReturnDate] = useState(formatDate(today));
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [cabinClass, setCabinClass] = useState<CabinClass>('Economy');
-
-
+  const [fromAirport, setFromAirport] = useState<Airport | null>(null); 
+  const [toAirport, setToAirport] = useState<Airport | null>(null);
 
   // Modals
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -88,9 +83,11 @@ const FlightSearchScreen = () => {
         setLoadingAirports(true);
         setErrorAirports(null);
 
-        const response = await axios.get("http://localhost:8080/api/airports");
-        // backend trả về { success: true, message, data: [...] }
-        const data = response.data?.data ?? response.data; // robust
+        // Lấy danh sách airports từ Flight table
+        const response = await axios.get("http://192.168.1.4:5000/api/flights/airports-from-flights");
+        
+        const data = response.data?.data ?? response.data;
+        console.log('✈️ Loaded airports:', data);
         setAirports(data as Airport[]);
       } catch (err: any) {
         console.error("Error fetching airports:", err);
@@ -103,34 +100,31 @@ const FlightSearchScreen = () => {
     fetchAirports();
   }, []);
 
-
-
   const addFlight = () => {
-    setFlights([...flights, { from: '', to: '', date: 'Fri, Jul 14' }]);
+    setFlights([...flights, { from: null, to: null, date: formatDate(today) }]);
   };
 
   const swapLocations = () => {
-    const temp = from;
-    setFrom(to);
-    setTo(temp);
+    const temp = fromAirport;     
+    setFromAirport(toAirport); 
+    setToAirport(temp);        
   };
 
   const selectAirport = (airport: Airport, isFrom: boolean) => {
-    const cityWithCode = `${airport.city} (${airport.code})`;
     if (tripType === 'multi-city') {
       const updatedFlights = [...flights];
       if (isFrom) {
-        updatedFlights[selectedFlightIndex].from = cityWithCode;
+        updatedFlights[selectedFlightIndex].from = airport; 
       } else {
-        updatedFlights[selectedFlightIndex].to = cityWithCode;
+        updatedFlights[selectedFlightIndex].to = airport;   
       }
       setFlights(updatedFlights);
     } else {
       if (isFrom) {
-        setFrom(cityWithCode);
+        setFromAirport(airport);
         setShowFromModal(false);
       } else {
-        setTo(cityWithCode);
+        setToAirport(airport);
         setShowToModal(false);
       }
     }
@@ -143,7 +137,7 @@ const FlightSearchScreen = () => {
   };
 
   const getDayName = (day: number) => {
-    const date = new Date(2025, 6, day); // July 2025
+    const date = new Date(2025, 6, day);
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
@@ -167,21 +161,37 @@ const FlightSearchScreen = () => {
     }
   };
 
-  const filteredAirports = airports.filter((airport: Airport) =>
-    (airport.name || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-    (airport.code || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-    (airport.city || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-    (airport.country || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+  // Logic lọc airports với useMemo để optimize
+  // Trong FlightSearchScreen component, thay thế hoặc bổ sung logic này:
 
+// Logic lọc airports với useMemo để optimize
+const groupedAirports = React.useMemo(() => {
+    if (!searchQuery.trim() || airports.length === 0) {
+        return {};
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = airports.filter((airport: Airport) =>
+        (airport.name || "").toLowerCase().includes(query) ||
+        (airport.code || "").toLowerCase().includes(query) ||
+        (airport.city || "").toLowerCase().includes(query)
+    );
+
+    // 1. Nhóm các sân bay theo Thành phố (City)
+    const grouped: Record<string, Airport[]> = filtered.reduce((acc, airport) => {
+        const key = `${airport.city}, ${airport.country || 'Unknown'}`;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(airport);
+        return acc;
+    }, {} as Record<string, Airport[]>);
+    
+    return grouped;
+}, [searchQuery, airports]);
+
+// Hàm này giúp lấy tổng số kết quả (để hiển thị "X results")
+const totalResults = Object.values(groupedAirports).reduce((count, arr) => count + arr.length, 0);
 
   // Options Modal
   const renderOptionsModal = () => (
@@ -298,12 +308,12 @@ const FlightSearchScreen = () => {
       </View>
     </Modal>
   );
+
   // Date Modal
   const renderDateModal = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
 
-    // Hàm tạo danh sách tháng từ tháng hiện tại -> 12 tháng tới
     const generateMonths = () => {
       const months: { name: string; year: number; month: number; days: number; firstDay: number }[] = [];
       for (let i = 0; i < 12; i++) {
@@ -312,7 +322,7 @@ const FlightSearchScreen = () => {
         const year = date.getFullYear();
         const month = date.getMonth();
         const days = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+        const firstDay = new Date(year, month, 1).getDay();
         months.push({ name, year, month, days, firstDay });
       }
       return months;
@@ -359,7 +369,6 @@ const FlightSearchScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Thanh chọn ngày đi / ngày về */}
             <View style={styles.dateSelector}>
               <TouchableOpacity
                 style={[styles.dateItem, isSelectingDepartDate && styles.dateItemActive]}
@@ -379,7 +388,6 @@ const FlightSearchScreen = () => {
               )}
             </View>
 
-            {/* Cuộn qua các tháng */}
             <ScrollView>
               {months.map((m, idx) => (
                 <View key={idx} style={styles.calendar}>
@@ -390,11 +398,9 @@ const FlightSearchScreen = () => {
                     ))}
                   </View>
                   <View style={styles.daysGrid}>
-                    {/* Căn ngày đầu tháng */}
                     {Array.from({ length: m.firstDay }).map((_, i) => (
                       <View key={`empty-${i}-${idx}`} style={[styles.dayCell]} />
                     ))}
-                    {/* Ngày trong tháng */}
                     {Array.from({ length: m.days }, (_, d) => d + 1).map((day) => {
                       const isSelected =
                         (isSelectingDepartDate && departDate.includes(`${m.name.slice(0, 3)} ${day}`)) ||
@@ -442,71 +448,123 @@ const FlightSearchScreen = () => {
     );
   };
 
-  // Location Modal (From/To)
-  const renderLocationModal = (isFrom: boolean) => (
-    <Modal
-      visible={isFrom ? showFromModal : showToModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => {
-        isFrom ? setShowFromModal(false) : setShowToModal(false);
-        setSearchQuery('');
-      }}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{isFrom ? 'Where from?' : 'Where to?'}</Text>
-            <TouchableOpacity onPress={() => {
-              isFrom ? setShowFromModal(false) : setShowToModal(false);
-              setSearchQuery('');
-            }}>
-              <MaterialCommunityIcons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.locationInputs}>
-            <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="magnify" size={20} color="#666" />
-              <TextInput
-                style={styles.locationInput}
-                placeholder={isFrom ? "Search departure airport" : "Search destination airport"}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-            </View>
-          </View>
-
-          <ScrollView style={styles.locationResults}>
-            {loadingAirports && <Text>Loading airports...</Text>}
-            {!loadingAirports && filteredAirports.length === 0 && (
-              <Text style={{ textAlign: 'center', marginTop: 20 }}>No airports found</Text>
-            )}
-            {filteredAirports.map((airport, index) => (
-              <TouchableOpacity
-                key={airport.code + index}
-                style={styles.airportItem}
-                onPress={() => selectAirport(airport, isFrom)}
-              >
-                <MaterialCommunityIcons name="airplane" size={24} color="#666" />
-                <View style={styles.airportInfo}>
-                  <Text style={styles.airportName}>{airport.code} — {airport.name}</Text>
-                  <Text style={styles.airportDistance}>{airport.city}{airport.country ? `, ${airport.country}` : ''}</Text>
-                </View>
-                <Text style={styles.airportCode}>{airport.code}</Text>
+  // Location Modal
+  const renderLocationModal = (isFrom: boolean) => {
+    return (
+      <Modal
+        visible={isFrom ? showFromModal : showToModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          isFrom ? setShowFromModal(false) : setShowToModal(false);
+          setSearchQuery('');
+        }}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{isFrom ? 'Where from?' : 'Where to?'}</Text>
+              <TouchableOpacity onPress={() => {
+                isFrom ? setShowFromModal(false) : setShowToModal(false);
+                setSearchQuery('');
+              }}>
+                <MaterialCommunityIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
-            ))}
+            </View>
 
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
+            <View style={styles.locationInputs}>
+              <View style={styles.locationRow}>
+                <MaterialCommunityIcons name="magnify" size={20} color="#666" />
+                <TextInput
+                  style={styles.locationInput}
+                  placeholder={isFrom ? "Search departure airport" : "Search destination airport"}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+              </View>
+            </View>
+<ScrollView style={styles.locationResults}>
+    {loadingAirports ? (
+        <Text style={styles.loadingText}>Loading airports...</Text>
+    ) : (
+        <>
+            {/* Hiển thị Empty State nếu không có kết quả */}
+            {searchQuery.trim() !== '' && totalResults === 0 && (
+                 <View style={styles.emptyState}>
+                   <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#ccc" />
+                   <Text style={styles.emptyStateText}>No airports found</Text>
+                   <Text style={styles.emptyStateSubtext}>Try a different search term</Text>
+                 </View>
+            )}
+
+            {/* Hiển thị kết quả tìm kiếm đã nhóm */}
+            {totalResults > 0 && (
+                <>
+                    <Text style={styles.resultsCount}>
+                        Found {totalResults} result{totalResults > 1 ? 's' : ''} for "{searchQuery}"
+                    </Text>
+                    {/* Lặp qua các nhóm thành phố */}
+                    {Object.entries(groupedAirports).map(([cityKey, cityAirports]) => (
+                        <View key={cityKey} style={styles.cityGroup}>
+                            {/* Dòng hiển thị Tên Thành phố (Ví dụ: London, United Kingdom) */}
+                            <View style={styles.cityHeader}>
+                                <MaterialCommunityIcons name="map-marker" size={18} color="#666" />
+                                <Text style={styles.cityTitle}>{cityKey}</Text>
+                                {/* Thêm nút mũi tên sổ xuống/lên nếu bạn muốn tính năng thu gọn */}
+                                <MaterialCommunityIcons name="chevron-up" size={18} color="#666" />
+                            </View>
+                            
+                            {/* Lặp qua các Sân bay trong thành phố đó */}
+                            {cityAirports.map((airport, index) => (
+                                <TouchableOpacity
+                                    key={`${airport.code}-${index}`}
+                                    style={styles.airportItemDetail} // Sử dụng style mới cho chi tiết sân bay
+                                    onPress={() => selectAirport(airport, isFrom)}
+                                >
+                                    <MaterialCommunityIcons name="airplane" size={24} color="#999" />
+                                    <View style={styles.airportInfo}>
+                                        <Text style={styles.airportNameDetail}>
+                                            {airport.name}
+                                        </Text>
+                                        <Text style={styles.airportSubtextDetail}>
+                                            {/* Giả lập khoảng cách, bạn có thể bỏ qua nếu không có data */}
+                                            {/* Ví dụ: 20 km to destination */}
+                                            15 km to destination
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.airportCode}>{airport.code}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    ))}
+                </>
+            )}
+
+            {/* Giữ lại Empty State ban đầu cho trường hợp chưa nhập gì */}
+            {searchQuery.trim() === '' && (
+                 <View style={styles.emptyState}>
+                   <MaterialCommunityIcons name="magnify" size={48} color="#ccc" />
+                   <Text style={styles.emptyStateText}>Search for airports or cities</Text>
+                   <Text style={styles.emptyStateSubtext}>Try: London, New York, JFK...</Text>
+                 </View>
+            )}
+        </>
+    )}
+</ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}> 
+      <StatusBar barStyle="dark-content" /> 
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="close" size={24} color="#333" />
@@ -515,7 +573,6 @@ const FlightSearchScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Trip Type Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, tripType === 'round-trip' && styles.activeTab]}
@@ -559,7 +616,7 @@ const FlightSearchScreen = () => {
                   >
                     <MaterialCommunityIcons name="airplane-takeoff" size={20} color="#999" />
                     <Text style={[styles.inputPlaceholder, flight.from && styles.inputValue]}>
-                      {flight.from || 'From'}
+                      {flight.from ? `${flight.from.city} (${flight.from.code})` : 'From'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -571,7 +628,7 @@ const FlightSearchScreen = () => {
                   >
                     <MaterialCommunityIcons name="airplane-landing" size={20} color="#999" />
                     <Text style={[styles.inputPlaceholder, flight.to && styles.inputValue]}>
-                      {flight.to || 'To'}
+                      {flight.to ? `${flight.to.city} (${flight.to.code})` : 'To'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -599,8 +656,8 @@ const FlightSearchScreen = () => {
                 onPress={() => setShowFromModal(true)}
               >
                 <MaterialCommunityIcons name="airplane-takeoff" size={20} color="#999" />
-                <Text style={[styles.inputPlaceholder, from && styles.inputValue]}>
-                  {from || 'From'}
+                <Text style={[styles.inputPlaceholder, fromAirport && styles.inputValue]}>
+                  {fromAirport ? `${fromAirport.city} (${fromAirport.code})` : 'From'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.swapButton} onPress={swapLocations}>
@@ -611,8 +668,8 @@ const FlightSearchScreen = () => {
                 onPress={() => setShowToModal(true)}
               >
                 <MaterialCommunityIcons name="airplane-landing" size={20} color="#999" />
-                <Text style={[styles.inputPlaceholder, to && styles.inputValue]}>
-                  {to || 'To'}
+                <Text style={[styles.inputPlaceholder, toAirport && styles.inputValue]}>
+                  {toAirport ? `${toAirport.city} (${toAirport.code})` : 'To'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -638,7 +695,6 @@ const FlightSearchScreen = () => {
           </View>
         )}
 
-        {/* Traveller and Class Selection */}
         <TouchableOpacity
           style={styles.travellerButton}
           onPress={() => setShowOptionsModal(true)}
@@ -654,18 +710,19 @@ const FlightSearchScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Search Button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.searchButton}
           onPress={async () => {
             console.log('🔍 Search button pressed');
-
+            if (!fromAirport || !toAirport) {
+              Alert.alert('Incomplete', 'Please select departure and destination airports.');
+              return;
+            }
             try {
-              // Prepare search parameters
               const searchParams = {
-                from: from || 'London City (LCY)',
-                to: to || 'John F Kennedy (JFK)',
+                from: fromAirport.name,
+                to: toAirport.name,
                 departDate: departDate,
                 returnDate: tripType === 'round-trip' ? returnDate : undefined,
                 passengers: totalTravellers,
@@ -675,8 +732,7 @@ const FlightSearchScreen = () => {
 
               console.log('📤 Sending search params:', searchParams);
 
-              // Call API
-              const response = await axios.get('http://localhost:8080/api/flights/search', {
+              const response = await axios.get('http://192.168.1.4:5000/api/flights/search', {
                 params: searchParams
               });
 
@@ -687,36 +743,18 @@ const FlightSearchScreen = () => {
 
                 console.log(`✈️ Found ${outboundFlights.length} outbound flights`);
                 console.log(`🔙 Found ${returnFlights.length} return flights`);
-                const options = {
-                  travellers: {
-                    adults,
-                    children,
-                    infants
-                  },
-                  cabinClass: searchCriteria.cabinClass
-                };
 
-
-                // Navigate to results page with data
-                navigation.navigate('FlightBookingSearchResults', {
+                navigation.navigate('List', {
                   outboundFlights,
                   returnFlights,
                   searchCriteria,
-                  from: searchCriteria.from,
-                  to: searchCriteria.to,
-                  departDate: searchCriteria.departDate,
-                  returnDate: searchCriteria.returnDate,
-                  tripType: searchCriteria.tripType,
                   passengers: {
                     adults: adults,
                     children: children,
                     infants: infants
                   },
-                  cabinClass: searchCriteria.cabinClass,
-                  options
                 });
               } else {
-                // No flights found
                 Alert.alert(
                   'No Flights Found',
                   response.data.message || 'No flights match your search criteria. Please try different dates or destinations.',
@@ -745,12 +783,11 @@ const FlightSearchScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Modals */}
       {renderOptionsModal()}
       {renderDateModal()}
       {renderLocationModal(true)}
       {renderLocationModal(false)}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -906,6 +943,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingBottom: 40,
     maxHeight: '90%',
+    width: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -994,9 +1032,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   doneButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
   },
   dateSelector: {
     flexDirection: 'row',
@@ -1091,7 +1129,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   locationResults: {
-    flex: 1,
     paddingHorizontal: 20,
   },
   airportItem: {
@@ -1118,6 +1155,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#666',
+  },
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#999',
+    fontSize: 14,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 12,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#bbb',
+    marginTop: 4,
+  },
+  resultsCount: {
+    fontSize: 12,
+    color: '#999',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  airportSubtext: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+  airportCountry: {
+    fontSize: 12,
+    color: '#bbb',
+    marginTop: 2,
+  },
+  cityGroup: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  cityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginBottom: 5,
+  },
+  cityTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginLeft: 8,
+  },
+  airportItemDetail: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingLeft: 30, 
+  },
+  airportNameDetail: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+  },
+  airportSubtextDetail: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
 });
 

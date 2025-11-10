@@ -7,120 +7,125 @@ const { height } = Dimensions.get('window');
 
 // === 1. THÊM HÀM FORMAT NGÀY ===
 const formatDate = (dateString: string) => {
-  if (!dateString) return 'N/A';
-  try {
-    const date = new Date(dateString);
-    // Trả về định dạng: "Tue, Jul 14"
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch (error) {
-    return dateString; // Trả về nguyên bản nếu lỗi
-  }
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    // Trả về định dạng: "Tue, Jul 14"
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (error) {
+    return dateString; // Trả về nguyên bản nếu lỗi
+  }
 };
 
 export default function CheckoutPaymentSuccess({ navigation, route }: any) {
-  const {
-    bookingId = 'BK123456',
-    departure = 'LCY',
-    arrival = 'JFK',
-    departDate, // Bỏ giá trị mặc định
-    returnDate, // Bỏ giá trị mặc định
-    traveller = 'Pedro Moreno',
-    flightClass = 'Economy',
-    tripType = 'Round-trip',
-    totalPrice = '811.56',
-  } = route?.params || {};
+  const {
+    bookingId = 'BK123456',
+    departure = 'LCY',
+    arrival = 'JFK',
+    departDate, // Bỏ giá trị mặc định
+    returnDate, // Bỏ giá trị mặc định
+    traveller = 'Pedro Moreno',
+    flightClass = 'Economy',
+    tripType = 'Round-trip',
+    totalPrice = '811.56',
+  } = route?.params || {};
 
-  const handleBookingDetail = () => {
-    console.log('View booking details:', bookingId);
-    // (Bạn có thể điều hướng đến màn hình chi tiết booking ở đây)
-  };
+  // === SỬA ĐỔI HÀM NÀY ===
+  const handleBookingDetail = () => {
+    console.log('Navigating to BookingDetail with ID:', bookingId);
+    // Điều hướng đến màn hình BookingDetail và truyền bookingId
+    navigation.navigate('BookingDetail', {
+      bookingId: bookingId,
+    });
+  };
+  // === KẾT THÚC SỬA ĐỔI ===
 
-  const handleHome = () => {
-    // Điều hướng về màn hình Home và reset lại toàn bộ stack
-    navigation.popToTop(); // Quay về màn hình đầu tiên trong Stack
-  };
+  const handleHome = () => {
+    // Điều hướng về màn hình Home và reset lại toàn bộ stack
+    navigation.popToTop(); // Quay về màn hình đầu tiên trong Stack
+  };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Ảnh nền nửa trên */}
-      <Image
-        source={require('../../assets/img/plane-bg.jpg')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      />
-      <View style={styles.overlay} />
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      {/* Ảnh nền nửa trên */}
+      <Image
+        source={require('../../assets/img/plane-bg.jpg')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      <View style={styles.overlay} />
 
-      {/* Nội dung chính */}
-      <View style={styles.bottomContainer}>
-        <View style={styles.card}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name="check-circle-outline"
-              size={36}
-              color="#d97706"
-            />
-          </View>
+      {/* Nội dung chính */}
+      <View style={styles.bottomContainer}>
+        <View style={styles.card}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="check-circle-outline"
+              size={36}
+              color="#d97706"
+            />
+          </View>
 
-          <Text style={styles.title}>Booking successful</Text>
+          <Text style={styles.title}>Booking successful</Text>
 
-          <View style={styles.flightRow}>
-            <View style={styles.flightCol}>
-              <Text style={styles.airportCode}>{departure}</Text>
-              {/* === 2. SỬ DỤNG HÀM FORMAT === */}
-              <Text style={styles.date}>{formatDate(departDate)}</Text>
-            </View>
+          <View style={styles.flightRow}>
+            <View style={styles.flightCol}>
+              <Text style={styles.airportCode}>{departure}</Text>
+              {/* === 2. SỬ DỤNG HÀM FORMAT === */}
+              <Text style={styles.date}>{formatDate(departDate)}</Text>
+            </View>
 
-            <MaterialCommunityIcons
-              name="swap-horizontal"
-              size={22}
-              color="#6b7280"
-            />
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={22}
+              color="#6b7280"
+            />
 
-            <View style={styles.flightCol}>
-              <Text style={styles.airportCode}>{arrival}</Text>
-              {/* === 2. SỬ DỤNG HÀM FORMAT === */}
-              <Text style={styles.date}>{formatDate(returnDate)}</Text>
-            </View>
-          </View>
+            <View style={styles.flightCol}>
+              <Text style={styles.airportCode}>{arrival}</Text>
+              {/* === 2. SỬ DỤNG HÀM FORMAT === */}
+              <Text style={styles.date}>{formatDate(returnDate)}</Text>
+            </View>
+          </View>
 
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Traveller</Text>
-              <Text style={styles.detailValue}>{traveller}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Class</Text>
-              <Text style={styles.detailValue}>{flightClass}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Flight</Text>
-              <Text style={styles.detailValue}>{tripType}</Text>
-            </View>
-          </View>
+          <View style={styles.detailsRow}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Traveller</Text>
+              <Text style={styles.detailValue}>{traveller}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Class</Text>
+              <Text style={styles.detailValue}>{flightClass}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Flight</Text>
+              <Text style={styles.detailValue}>{tripType}</Text>
+            </View>
+          </View>
 
-          <Text style={styles.price}>${totalPrice}</Text>
+          <Text style={styles.price}>${totalPrice}</Text>
 
-          <Button
-            mode="contained"
-            onPress={handleBookingDetail}
-            style={styles.detailButton}
-            buttonColor="#06b6d4"
-            labelStyle={styles.buttonLabel}
-          >
-            Booking detail
-          </Button>
+          <Button
+            mode="contained"
+            onPress={handleBookingDetail}
+            style={styles.detailButton}
+            buttonColor="#06b6d4"
+            labelStyle={styles.buttonLabel}
+          >
+            Booking detail
+          </Button>
 
-          <Button mode="text" onPress={handleHome} labelStyle={styles.homeLabel}>
-            Home
-          </Button>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+          <Button mode="text" onPress={handleHome} labelStyle={styles.homeLabel}>
+            Home
+          </Button>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 // ... (Toàn bộ 'styles' của bạn giữ nguyên, không cần sửa)
@@ -224,7 +229,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 15,
     fontWeight: "600",
- },
+ },
   homeLabel: {
     color: "#06b6d4",
     fontSize: 15,

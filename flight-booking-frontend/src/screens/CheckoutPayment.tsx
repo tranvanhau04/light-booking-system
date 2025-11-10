@@ -1,228 +1,263 @@
-// Import thêm useState, useMemo, Alert, và Context/Service
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Text } from 'react-native-paper';
+import { Button, Text, Menu } from 'react-native-paper'; // Thêm Menu, Text
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useBooking } from '../context/BookingContext'; // <-- IMPORT
+import { useBooking } from '../context/BookingContext'; // <-- IMPORT HOOK
 import { createBooking } from '../services/bookingService'; // <-- IMPORT
 
 export default function CheckoutPayment({ navigation }: any) {
-  // === LẤY DATA TỪ KHO CHỨA ===
-  const { bookingData, clearBookingData } = useBooking();
-  const [isLoading, setIsLoading] = useState(false);
+  // === LẤY DATA TỪ KHO CHỨA ===
+  const { bookingData, clearBookingData } = useBooking();
+  const [isLoading, setIsLoading] = useState(false);
+  const [paymentMenuVisible, setPaymentMenuVisible] = useState(false); // State cho Menu
 
-  // === TÍNH TOÁN GIÁ TIỀN TỪ DATA THẬT ===
-  const { baseFare, baggagePrice, seatPrice, totalPrice, taxesAndFees} = useMemo(() => {
-    const base = bookingData.outboundFlight?.basePrice || 0;
-    const bag = bookingData.baggage?.price || 0;
-    const seat = bookingData.selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
-    const taxes = 5.57; // (Tạm tính)
+  // === TÍNH TOÁN GIÁ TIỀN TỪ DATA THẬT ===
+  const { baseFare, baggagePrice, seatPrice, totalPrice, taxesAndFees} = useMemo(() => {
+    // LẤY GIÁ GỐC ĐÃ LƯU VÀO CONTEXT
+    const base = bookingData.totalPrice || 0;
+    const bag = bookingData.selectedBaggage?.reduce((sum: number, b: any) => sum + (b.price || 0), 0) || 0;
+    const seat = bookingData.selectedSeats.reduce((sum: number, s: any) => sum + (s.price || 0), 0);
+    const taxes = 5.57; // (Tạm tính)
+    
+    const total = (bookingData.totalPrice || 0) + bag + seat + taxes;
+
+    return {
+      baseFare: base,
+      baggagePrice: bag,
+      seatPrice: seat,
+      taxesAndFees: taxes,
+      totalPrice: total,
+    };
+  }, [bookingData]);
+
+  // Lấy thông tin hành khách đầu tiên
+  const mainPassenger = bookingData.passengers[0];
+
+  // === HÀM CHECKOUT (GỌI API) ===
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    
+    // KIỂM TRA TÍNH HỢP LỆ VÀ SỬA LỖI FLIGHTID
+    const primaryFlightId = bookingData.outboundFlight?.flightId;
     
-    const total = base + bag + seat + taxes;
-
-    return {
-      baseFare: base,
-      baggagePrice: bag,
-      seatPrice: seat,
-      taxesAndFees: taxes,
-      totalPrice: total,
-    };
-  }, [bookingData]);
-
-  // Lấy thông tin hành khách đầu tiên
-  const mainPassenger = bookingData.passengers[0];
-
-  // === HÀM CHECKOUT (GỌI API) ===
-  const handleCheckout = async () => {
-    setIsLoading(true);
-    
-    const finalBookingData = {
-      flightId: bookingData.outboundFlight?.flightId,
-      passengers: bookingData.passengers,
-      selectedSeats: bookingData.selectedSeats.map((seat, index) => ({
-        passengerIndex: index,
-        seatNumber: `${seat.row}${seat.column}`,
-        cabinId: seat.cabinId,
-      })),
-      baggage: bookingData.baggage,
-      // paymentToken: '...'
-    };
-
-    if (!finalBookingData.flightId || finalBookingData.passengers.length === 0) {
-      Alert.alert('Lỗi', 'Thông tin đặt vé bị thiếu. Vui lòng thử lại.');
-      setIsLoading(false);
-      return;
+    if (!primaryFlightId || bookingData.passengers.length === 0) {
+        Alert.alert('Lỗi', 'Thông tin chuyến bay hoặc hành khách bị thiếu.');
+        setIsLoading(false);
+        return;
     }
 
-    try {
-      const result = await createBooking(finalBookingData);
+    const finalBookingData = {
+      flightId: primaryFlightId, // <-- FIX LỖI 2
+      passengers: bookingData.passengers,
+      selectedSeats: bookingData.selectedSeats.map((seat, index) => ({
+        passengerIndex: index,
+        // Đảm bảo seatNumber được lấy từ thuộc tính đã format (seat.seatNumber)
+        seatNumber: seat.seatNumber, 
+        cabinId: seat.cabinId,
+        price: seat.price
+      })),
+      baggage: bookingData.baggage,
+      // paymentToken: '...'
+    };
 
-      clearBookingData(); // Xóa data trong kho
-      
-      // Chuyển trang thành công và gửi data thật
-      navigation.navigate('CheckoutPaymentSuccess', {
-        bookingId: result.bookingId,
-        departure: bookingData.outboundFlight?.departureAirport,
-        arrival: bookingData.outboundFlight?.arrivalAirport,
-        departDate: bookingData.outboundFlight?.departureTime, // (Cần format lại)
-        traveller: mainPassenger?.fullName,
-        totalPrice: result.totalPrice.toFixed(2),
-        // (Bạn có thể truyền thêm data)
-      });
+    try {
+      // GỌI API TẠO BOOKING
+      const result = await createBooking(finalBookingData);
 
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert(
-        'Đặt vé thất bại',
-        error.response?.data?.error || 'Không thể kết nối máy chủ.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+//       clearBookingData(); // Xóa data trong kho
+      
+      // Chuyển trang thành công
+      navigation.navigate('CheckoutPaymentSuccess', {
+        bookingId: result.bookingId,
+        departure: bookingData.outboundFlight?.departureAirport,
+        arrival: bookingData.outboundFlight?.arrivalAirport,
+        departDate: bookingData.outboundFlight?.departureTime,
+        traveller: mainPassenger?.fullName,
+        totalPrice: result.totalPrice.toFixed(2),
+      });
 
-  // === HÀM ĐIỀU HƯỚNG CŨ CỦA BẠN (SỬA LẠI LUỒNG) ===
-  const navigateToStep = (step: number) => {
-    if (step === 1) navigation.navigate("CheckoutPassengerInformation");
-    if (step === 2) navigation.navigate("CheckoutBaggageInformation");
-    if (step === 3) navigation.navigate("CheckoutSelectSeats");
-  };
+    } catch (error: any) {
+      console.error('Lỗi khi tạo booking:', error);
+      Alert.alert(
+        'Đặt vé thất bại',
+        error.response?.data?.error || 'Không thể tạo booking. Vui lòng kiểm tra kết nối.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // === RENDER UI (Giao diện cũ của bạn + data thật) ===
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header with back button and steps */}
-      <View style={styles.headerContainer}>
-        <View style={styles.topRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
-          </TouchableOpacity>
-
-          {/* Progress steps (Đã sửa lại luồng) */}
-          <View style={styles.stepsRow}>
-            {/* 1. Passenger */}
-            <TouchableOpacity onPress={() => navigateToStep(1)}>
-              <View style={styles.stepCompleted}>
-                <MaterialCommunityIcons name="account" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.stepLineActive} />
-            {/* 2. Baggage */}
-            <TouchableOpacity onPress={() => navigateToStep(2)}>
-              <View style={styles.stepCompleted}>
-                <MaterialCommunityIcons name="briefcase" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.stepLineActive} />
-            {/* 3. Seat */}
-            <TouchableOpacity onPress={() => navigateToStep(3)}>
-              <View style={styles.stepCompleted}>
-                <MaterialCommunityIcons name="sofa" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.stepLineActive} />
-            {/* 4. Payment (Active) */}
-            <View style={styles.stepActive}>
-              <MaterialCommunityIcons name="credit-card-outline" size={20} color="#fff" />
+  // === HÀM ĐIỀU HƯỚNG CŨ CỦA BẠN (SỬA LẠI LUỒNG) ===
+  const navigateToStep = (step: number) => {
+    if (step === 1) navigation.navigate("CheckoutPassengerInformation");
+    if (step === 2) navigation.navigate("CheckoutBaggageInformation");
+    if (step === 3) navigation.navigate("CheckoutSelectSeats");
+  };
+  
+  // Giao diện
+  const renderPaymentMethod = () => (
+    <View style={styles.card}>
+        <View style={styles.paymentMethodRow}>
+            <View style={styles.radioSelected}>
+                <View style={styles.radioDot} />
             </View>
-          </View>
-        </View>
-        <Text style={styles.pageTitle}>Payment</Text>
-      </View>
-
-      {/* Main content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Payment Method (UI cũ của bạn) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment method</Text>
-          <View style={styles.card}>
-            <View style={styles.paymentMethodRow}>{/* ... (UI cũ) ... */}</View>
-            <TouchableOpacity style={styles.addCardButton}>{/* ... (UI cũ) ... */}</TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Traveller Details (Dùng data thật) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Traveller details</Text>
-          <View style={styles.card}>
-            {bookingData.passengers.map((p, index) => (
-              <View key={index} style={styles.travellerRow}>
-                <View style={styles.avatar}>{/*...*/}</View>
-                <View style={styles.travellerInfo}>
-                  <Text style={styles.travellerName}>{p.fullName || 'Hành khách'}</Text>
-                  <Text style={styles.travellerDetails}>Adult • {p.gender || 'Chưa rõ'}</Text>
+            <View style={styles.cardBrand}>
+                <View style={styles.mastercardLogo}>
+                    <View style={[styles.circle, styles.circleRed]} />
+                    <View style={[styles.circle, styles.circleOrange]} />
                 </View>
-              </View>
-            ))}
-          </View>
+            </View>
+            <View style={styles.cardInfo}>
+                <Text style={styles.cardText}>Mastercard</Text>
+                <Text style={styles.cardNumber}>**** 9876</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton}>
+                <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
         </View>
-
-        {/* Contact Details (Dùng data thật) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact details</Text>
-          <View style={styles.card}>
-            <View style={styles.contactRow}>
-              <MaterialCommunityIcons name="email-outline" size={20} color="#6b7280" />
-              <Text style={styles.contactText}>{mainPassenger?.email || 'Chưa có'}</Text>
-            </View>
-            <View style={[styles.contactRow, { marginTop: 16 }]}>
-              <MaterialCommunityIcons name="phone-outline" size={20} color="#6b7280" />
-              <Text style={styles.contactText}>{mainPassenger?.phone || 'Chưa có'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Price Summary (Dùng data thật) */}
-        <View style={styles.section}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Price Summary</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Base fare ({bookingData.passengers.length} adult)</Text>
-              <Text style={styles.summaryValue}>${baseFare.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Seat selection</Text>
-              <Text style={styles.summaryValue}>${seatPrice.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Checked bag</Text>
-              <Text style={styles.summaryValue}>${baggagePrice.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Taxes & fees</Text>
-              <Text style={styles.summaryValue}>${taxesAndFees.toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryTotal}>Total</Text>
-              <Text style={styles.summaryTotalAmount}>${totalPrice.toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Footer (Dùng data thật + loading state) */}
-      <View style={styles.footer}>
-        <View>
-          <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
-          <Text style={styles.priceLabel}>{bookingData.passengers.length} adult</Text>
-        </View>
-        <Button
-          mode="contained"
-          onPress={handleCheckout} // <-- GỌI HÀM API
-          style={styles.checkoutButton}
-          labelStyle={styles.checkoutButtonLabel}
-          buttonColor="#06b6d4"
-          loading={isLoading} // <-- THÊM
-          disabled={isLoading} // <-- THÊM
-        >
-          {isLoading ? 'Processing...' : 'Checkout'}
-        </Button>
-      </View>
-    </SafeAreaView>
+        <TouchableOpacity style={styles.addCardButton}>
+            <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#7c3aed" />
+            <Text style={styles.addCardText}>New card</Text>
+        </TouchableOpacity>
+    </View>
   );
+
+  // ... (Giao diện Traveller Details và Contact Details giữ nguyên)
+
+  // === RENDER UI (Giao diện cũ của bạn + data thật) ===
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header with back button and steps */}
+      <View style={styles.headerContainer}>
+        <View style={styles.topRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
+          </TouchableOpacity>
+
+          {/* Progress steps */}
+          <View style={styles.stepsRow}>
+            {/* 1. Passenger */}
+            <TouchableOpacity onPress={() => navigateToStep(1)}>
+              <View style={styles.stepCompleted}>
+                <MaterialCommunityIcons name="account" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.stepLineActive} />
+            {/* 2. Baggage */}
+            <TouchableOpacity onPress={() => navigateToStep(2)}>
+              <View style={styles.stepCompleted}>
+                <MaterialCommunityIcons name="briefcase" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.stepLineActive} />
+            {/* 3. Seat */}
+            <TouchableOpacity onPress={() => navigateToStep(3)}>
+              <View style={styles.stepCompleted}>
+                <MaterialCommunityIcons name="sofa" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.stepLineActive} />
+            {/* 4. Payment (Active) */}
+            <View style={styles.stepActive}>
+              <MaterialCommunityIcons name="credit-card-outline" size={20} color="#fff" />
+            </View>
+          </View>
+        </View>
+        <Text style={styles.pageTitle}>Payment</Text>
+      </View>
+
+      {/* Main content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Payment Method */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment method</Text>
+            {renderPaymentMethod()}
+        </View>
+
+        {/* Traveller Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Traveller details</Text>
+          <View style={styles.card}>
+            {bookingData.passengers.map((p, index) => (
+              <View key={index} style={styles.travellerRow}>
+                <View style={styles.avatar}>
+                    <MaterialCommunityIcons name="account" size={20} color="#6b7280" />
+                </View>
+                <View style={styles.travellerInfo}>
+                  <Text style={styles.travellerName}>{p.fullName || 'Hành khách'}</Text>
+                  <Text style={styles.travellerDetails}>Adult • {p.gender || 'Chưa rõ'}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Contact Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact details</Text>
+          <View style={styles.card}>
+            <View style={styles.contactRow}>
+              <MaterialCommunityIcons name="email-outline" size={20} color="#6b7280" />
+              <Text style={styles.contactText}>{mainPassenger?.email || 'Chưa có'}</Text>
+            </View>
+            <View style={[styles.contactRow, { marginTop: 16 }]}>
+              <MaterialCommunityIcons name="phone-outline" size={20} color="#6b7280" />
+              <Text style={styles.contactText}>{mainPassenger?.phone || 'Chưa có'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Price Summary */}
+        <View style={styles.section}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Price Summary</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Base fare ({bookingData.passengers.length} adult)</Text>
+              <Text style={styles.summaryValue}>${baseFare.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Seat selection</Text>
+              <Text style={styles.summaryValue}>${seatPrice.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Checked bag</Text>
+              <Text style={styles.summaryValue}>${baggagePrice.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Taxes & fees</Text>
+              <Text style={styles.summaryValue}>${taxesAndFees.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryTotal}>Total</Text>
+              <Text style={styles.summaryTotalAmount}>${totalPrice.toFixed(2)}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View>
+          <Text style={styles.price}>${totalPrice.toFixed(2)}</Text>
+          <Text style={styles.priceLabel}>{bookingData.passengers.length} adult</Text>
+        </View>
+        <Button
+          mode="contained"
+          onPress={handleCheckout} // <-- GỌI HÀM API
+          style={styles.checkoutButton}
+          labelStyle={styles.checkoutButtonLabel}
+          buttonColor="#06b6d4"
+          loading={isLoading} // <-- THÊM
+          disabled={isLoading} // <-- THÊM
+        >
+          {isLoading ? 'Processing...' : 'Checkout'}
+        </Button>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 // ... (Dán toàn bộ 'styles' cũ của bạn vào đây)
@@ -433,7 +468,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#374151",
     marginLeft: 12,
- },
+ },
   summaryCard: {
     backgroundColor: "#dbeafe",
     borderRadius: 12,
@@ -495,7 +530,7 @@ const styles = StyleSheet.create({
     fontSize: 12, 
     color: "#6b7280",
     marginTop: 2,
- },
+ },
   checkoutButton: {
     borderRadius: 12,
     paddingHorizontal: 32,
