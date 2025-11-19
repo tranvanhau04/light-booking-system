@@ -84,7 +84,7 @@ const FlightSearchScreen = () => {
         setErrorAirports(null);
 
         // Lấy danh sách airports từ Flight table
-        const response = await axios.get("http://192.168.1.4:5000/api/flights/airports-from-flights");
+        const response = await axios.get("http://192.168.1.31:5000/api/flights/airports-from-flights");
         
         const data = response.data?.data ?? response.data;
         console.log('✈️ Loaded airports:', data);
@@ -732,7 +732,7 @@ const totalResults = Object.values(groupedAirports).reduce((count, arr) => count
 
               console.log('📤 Sending search params:', searchParams);
 
-              const response = await axios.get('http://192.168.1.4:5000/api/flights/search', {
+              const response = await axios.get('http://192.168.1.31:5000/api/flights/search', {
                 params: searchParams
               });
 

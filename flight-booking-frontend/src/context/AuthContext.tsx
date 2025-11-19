@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(() => {
         // Đây là dữ liệu giả lập cho Bảng 'User'
         const fullUserDetails: User = {
-          userId: 'U001',
+          userId: 'USR001',
           fullName: 'Pedro Moreno',
           email: 'pedro.moreno@gmail.com',
           phone: '+120656789',

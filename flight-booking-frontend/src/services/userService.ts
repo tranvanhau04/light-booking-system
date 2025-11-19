@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 10.0.2.2 là localhost khi dùng máy ảo Android.
 // Thay bằng IP máy tính của bạn nếu dùng điện thoại thật.
-const API_URL = 'http://192.168.1.4:5000/api';
+const API_URL = 'http://192.168.1.31:5000/api';
 
 /**
  * Đăng ký tài khoản mới

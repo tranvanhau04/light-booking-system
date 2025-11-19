@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 10.0.2.2 là localhost khi dùng máy ảo Android.
 // (Hãy đảm bảo IP này đúng và khớp với các file service khác)
-const API_URL = 'http://192.168.1.4:5000/api';
+const API_URL = 'http://192.168.1.31:5000/api';
 
 // Định nghĩa kiểu (Interface) của data trả về
 export interface BaggageOption {

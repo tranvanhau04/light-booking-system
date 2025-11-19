@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // (Hãy đảm bảo IP này 100% là đúng: 192.168.1.46)
-const API_URL = 'http://192.168.1.4:5000/api'; 
+const API_URL = 'http://192.168.1.31:5000/api'; 
 
 // Định nghĩa kiểu (Interface) của data trả về
 export interface BestCity {

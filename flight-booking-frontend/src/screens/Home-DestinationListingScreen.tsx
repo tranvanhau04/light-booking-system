@@ -79,8 +79,8 @@ const HomeDestinationListingScreen = ({ navigation }: any) => {
             <Ionicons name="airplane" size={28} color="#fff" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Explore flight</Text>
-            <Text style={styles.headerSubtitle}>Welcome to flight booking</Text>
+            <Text style={styles.headerTitle}>Aimer flight</Text>
+            <Text style={styles.headerSubtitle}>Welcome to AIMER</Text>
           </View>
         </View>
         <TouchableOpacity 

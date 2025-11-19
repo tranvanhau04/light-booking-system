@@ -1,61 +1,78 @@
 import axios from 'axios';
-import { getToken } from './userService'; // Import hàm getToken
+import { getToken } from './userService'; 
 
-// 10.0.2.2 là localhost khi dùng máy ảo Android.
-// Thay bằng IP máy tính của bạn nếu dùng điện thoại thật.
-const API_URL = 'http://192.168.1.4:5000/api';
+// === CẬP NHẬT IP CỦA BẠN TẠI ĐÂY ===
+const API_URL = 'http://192.168.1.31:5000/api'; 
+
+// ====================================================================
+// 1. KHAI BÁO CÁC HÀM RIÊNG LẺ (Để hỗ trợ code cũ createBooking)
+// ====================================================================
 
 /**
  * Tạo một booking mới
- * (bookingData là đối tượng JSON bạn gửi lên, giống hệt Postman)
  */
 export const createBooking = async (bookingData: any) => {
   try {
-    // 1. Lấy token từ AsyncStorage
     const token = await getToken();
+    if (!token) throw new Error('Chưa đăng nhập');
 
-    if (!token) {
-      throw new Error('Chưa đăng nhập');
-    }
-
-    // 2. Gọi API với token trong header
     const response = await axios.post(`${API_URL}/bookings`, bookingData, {
-      headers: {
-        Authorization: `Bearer ${token}`, // <-- Gửi token ở đây
-      },
-    });
-
-    // Trả về booking đã tạo thành công
-    return response.data;
-
-  } catch (error: any) { // <-- SỬA Ở ĐÂY
-    console.error('Lỗi khi tạo booking:', error.response?.data || error.message);
-    throw error; // <-- SỬA Ở ĐÂY: Ném lỗi đầy đủ
-  }
-};
-
-/**
- * Lấy lịch sử đặt vé của người dùng
- */
-export const getMyBookings = async () => {
-  try {
-    const token = await getToken();
-    if (!token) {
-      throw new Error('Chưa đăng nhập');
-    }
-
-    // API 'my-bookings' này CHƯA được tạo ở backend,
-    // bạn sẽ cần tạo nó sau.
-    const response = await axios.get(`${API_URL}/bookings/my-bookings`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    
     return response.data;
-
-  } catch (error: any) { // <-- SỬA Ở ĐÂY
-    console.error('Lỗi khi lấy lịch sử booking:', error.response?.data || error.message);
-    throw error; // <-- SỬA Ở ĐÂY: Ném lỗi đầy đủ
+  } catch (error: any) {
+    console.error('Create Booking Error:', error.response?.data || error.message);
+    throw error;
   }
 };
+
+/**
+ * Lấy lịch sử đặt vé của user
+ */
+export const getUserBookings = async (userId: string) => {
+  try {
+    const token = await getToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const response = await axios.get(`${API_URL}/bookings/user/${userId}`, {
+      headers
+    });
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Get User Bookings Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Lấy chi tiết 1 booking
+ */
+export const getBookingById = async (id: string) => {
+  try {
+    const token = await getToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    
+    const response = await axios.get(`${API_URL}/bookings/${id}`, {
+       headers
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Get Booking Detail Error:', error);
+    throw error;
+  }
+};
+
+// ====================================================================
+// 2. GOM VÀO OBJECT (Để hỗ trợ code mới BookingHistoryScreen)
+// ====================================================================
+export const bookingService = {
+  createBooking,
+  getUserBookings,
+  getBookingById
+};
+
+// Xuất mặc định để tránh lỗi nếu có file nào import default
+export default bookingService;

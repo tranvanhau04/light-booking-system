@@ -18,6 +18,8 @@ import CheckoutPaymentSuccess from "../screens/CheckoutPaymentSuccess";
 import ProfileScreen from "../screens/ProfileScreen";
 import LoginScreen from "../screens/LoginScreen";
 import BookingDetailScreen from "../screens/BookingDetailScreen";
+// === 1. THÊM IMPORT MÀN HÌNH MỚI ===
+import BookingHistoryScreen from "../screens/BookingHistoryScreen";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -63,8 +65,10 @@ export type SearchStackParamList = {
   BookingDetail: Record<string, unknown>;
 };
 
+// === 2. CẬP NHẬT KHAI BÁO TYPE CHO PROFILE STACK ===
 export type ProfileStackParamList = {
   ProfileMain: undefined;
+  BookingHistory: { type: 'upcoming' | 'history' }; // Thêm dòng này
 };
 
 // ============================================================================
@@ -114,10 +118,13 @@ function SearchStack() {
   );
 }
 
+// === 3. CẬP NHẬT PROFILE STACK ===
 function ProfileStack() {
   return (
     <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStackNav.Screen name="ProfileMain" component={ProfileScreen} />
+      {/* Thêm màn hình BookingHistory vào đây để ProfileScreen có thể gọi tới */}
+      <ProfileStackNav.Screen name="BookingHistory" component={BookingHistoryScreen} />
     </ProfileStackNav.Navigator>
   );
 }
