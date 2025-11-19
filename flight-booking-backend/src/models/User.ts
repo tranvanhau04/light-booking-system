@@ -1,5 +1,5 @@
 ﻿import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
-import { Account } from './Account';
+import { Account } from './Account'; // Đảm bảo file src/models/Account.ts tồn tại
 import { Booking } from './Booking';
 
 @Table({ tableName: 'User', timestamps: false })

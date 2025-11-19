@@ -1,16 +1,25 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { 
+  Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, BelongsToMany 
+} from 'sequelize-typescript';
 import { User } from './User';
 import { FlightBooking } from './FlightBooking';
+import { Flight } from './Flight';
 import { BookingPassenger } from './BookingPassenger';
 import { SeatSelection } from './SeatSelection';
 import { Baggage } from './Baggage';
 import { Payment } from './Payment';
 
-@Table({ tableName: 'Booking', timestamps: false })
+@Table({ 
+  tableName: 'Booking', 
+  timestamps: true,           // Bật tính năng timestamp
+  createdAt: 'bookingDate',   // <-- Định nghĩa: bookingDate chính là createdAt
+  updatedAt: false            // <-- Tắt updatedAt vì DB không có cột này
+}) 
 export class Booking extends Model {
   @Column({ type: DataType.STRING(10), primaryKey: true })
   bookingId!: string;
 
+  // Sequelize sẽ tự động quản lý cột này khi tạo mới
   @Column(DataType.DATE)
   bookingDate?: Date;
 
@@ -26,6 +35,9 @@ export class Booking extends Model {
 
   @BelongsTo(() => User)
   user?: User;
+
+  @BelongsToMany(() => Flight, () => FlightBooking)
+  flights?: Flight[]; 
 
   @HasMany(() => FlightBooking)
   flightBookings?: FlightBooking[];

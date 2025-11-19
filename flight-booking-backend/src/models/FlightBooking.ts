@@ -1,24 +1,17 @@
 import {
-  Table,
-  Column,
-  Model,
-  ForeignKey,
-  DataType,
-  BelongsTo,
+  Table, Column, Model, ForeignKey, DataType, BelongsTo
 } from 'sequelize-typescript';
 import { Flight } from './Flight';
 import { Booking } from './Booking';
 
-@Table({
-  tableName: 'FlightBooking',
-  timestamps: false, // Bảng này không có cột createdAt/updatedAt
-})
+// === FIX CODE: timestamps: false ===
+@Table({ tableName: 'FlightBooking', timestamps: false })
 export class FlightBooking extends Model {
   
   @ForeignKey(() => Flight)
   @Column({
     type: DataType.STRING(10),
-    primaryKey: true, // <-- BÁO RẰNG ĐÂY LÀ 1 PHẦN CỦA KHÓA CHÍNH
+    primaryKey: true,
   })
   flightId!: string;
 
@@ -28,12 +21,11 @@ export class FlightBooking extends Model {
   @ForeignKey(() => Booking)
   @Column({
     type: DataType.STRING(10),
-    primaryKey: true, // <-- BÁO RẰNG ĐÂY LÀ 1 PHẦN CỦA KHÓA CHÍNH
+    primaryKey: true,
   })
   bookingId!: string;
 
   @BelongsTo(() => Booking)
   booking!: Booking;
 }
-
 export default FlightBooking;

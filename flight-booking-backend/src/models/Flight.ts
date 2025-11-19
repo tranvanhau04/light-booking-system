@@ -1,6 +1,9 @@
-import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
+import { 
+  Table, Column, Model, DataType, HasMany, BelongsToMany 
+} from 'sequelize-typescript';
 import { FlightCabinClass } from './FlightCabinClass';
 import { FlightBooking } from './FlightBooking';
+import { Booking } from './Booking'; // <--- Import Booking
 
 @Table({ tableName: 'Flight', timestamps: false })
 export class Flight extends Model {
@@ -8,7 +11,7 @@ export class Flight extends Model {
   flightId!: string;
 
   @Column(DataType.STRING(10))
-  flightCode!: string;
+  flightCode!: string; // Lưu ý: Frontend đang gọi là flightNumber, cần mapping lại
 
   @Column(DataType.STRING(20))
   departureAirport!: string;
@@ -36,6 +39,10 @@ export class Flight extends Model {
 
   @Column(DataType.INTEGER)
   stopCount?: number;
+
+  // === QUAN TRỌNG: THÊM ĐOẠN NÀY ===
+  @BelongsToMany(() => Booking, () => FlightBooking)
+  bookings?: Booking[];
 
   @HasMany(() => FlightCabinClass)
   flightCabinClasses?: FlightCabinClass[];
